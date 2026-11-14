@@ -1,0 +1,31 @@
+# Go 构建产物
+dbdlp.exe
+dbdlp
+*.test
+*.out
+
+# 前端构建与依赖
+web/node_modules/
+web/.next/
+web/out/
+
+# 运行时数据（含加密库/密钥/日志/报告，禁止入库）
+data/
+logs/
+reports/
+.dbdlp/
+
+# Archify 评审回执（渲染 HTML 与候选保留入库）
+.archify/**/review-*/
+
+# 会话与本地工作目录
+.workbuddy/
+
+# 临时与系统文件
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# TS 增量构建缓存
+web/tsconfig.tsbuildinfo

@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\19-Training\\learngo\\dbdlp\\.archify\\architecture-dbdlp-20261114-112500\\candidate.json",
+    "sha256": "5ab3579f33bced56f86158a100a79f6afc071fe5716d438065942f66c670bd5f",
+    "bytes": 4924
+  },
+  "artifact": {
+    "path": "D:\\19-Training\\learngo\\dbdlp\\archify\\architecture-dbdlp-20261114-112500\\dbdlp-architecture.html",
+    "sha256": "d9801440cb0b7ed734fc547ac1c7d117e33ea83463db4dfa59b27c9e35573e4f",
+    "bytes": 838735
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\19-Training\\learngo\\dbdlp\\archify\\architecture-dbdlp-20261114-112500\\dbdlp-architecture.finalize.json",
+    "summaryReceipt": "D:\\19-Training\\learngo\\dbdlp\\archify\\architecture-dbdlp-20261114-112500\\dbdlp-architecture.finalize-summary.json",
+    "browserCheckReceipt": "D:\\19-Training\\learngo\\dbdlp\\archify\\architecture-dbdlp-20261114-112500\\dbdlp-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-11-14T03:32:41.626Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6487,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 3
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "api-app",
+            "from": "api",
+            "to": "app",
+            "label": "调用用例",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "right": {
+            "id": "app-domain",
+            "from": "app",
+            "to": "domain",
+            "label": "编排端口/纯函数",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "point": [
+            603,
+            246
+          ],
+          "sharedNode": "app"
+        },
+        {
+          "left": {
+            "id": "cli-app",
+            "from": "cli",
+            "to": "app",
+            "label": "调用用例",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "right": {
+            "id": "app-store",
+            "from": "app",
+            "to": "store",
+            "label": "任务/台账/审计落库",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "point": [
+            603,
+            460
+          ],
+          "sharedNode": "app"
+        },
+        {
+          "left": {
+            "id": "cli-app",
+            "from": "cli",
+            "to": "app",
+            "label": "调用用例",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "right": {
+            "id": "app-crypto",
+            "from": "app",
+            "to": "crypto",
+            "label": "凭据 ENC() 加密",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "point": [
+            402.5,
+            460
+          ],
+          "sharedNode": "app"
+        }
+      ],
+      "detours": [],
+      "truncated": false
+    },
+    "hints": [
+      "api → app and app → domain cross next to app: move node api or domain so the two reach app from different sides (for example one level with it, one directly above or below it).",
+      "cli → app and app → store cross next to app: move node cli or store so the two reach app from different sides (for example one level with it, one directly above or below it).",
+      "cli → app and app → crypto cross next to app: move node cli or crypto so the two reach app from different sides (for example one level with it, one directly above or below it)."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

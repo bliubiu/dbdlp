@@ -1,0 +1,183 @@
+/* ==========================================================================
+ * dbdlp 前端控制台 · 全局样式
+ * --------------------------------------------------------------------------
+ * 令牌来源：docs/design-tokens.css（MASTER 运行时真源，同步至 app/tokens.css）
+ * 主题：light（本期唯一实现，04 文档 §9；P12 不提供深色主题切换）
+ * 分层：Primitive(A1) -> Semantic(A2) -> Component(B-slot) -> Extension(C)
+ * 红线：组件样式禁裸 hex；色值一律引用 design-tokens CSS 变量。
+ * ========================================================================== */
+
+@import 'tailwindcss';
+@import './tokens.css';
+
+@theme inline {
+  /* 表面 */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-warm: var(--surface-warm);
+  --color-surface-brand: var(--surface-brand);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-selected: var(--surface-selected);
+  --color-surface-disabled: var(--surface-disabled);
+  --color-surface-skeleton: var(--surface-skeleton);
+
+  /* 前景 */
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-muted: var(--muted);
+  --color-meta: var(--meta);
+  --color-fg-disabled: var(--fg-disabled);
+  --color-fg-on-brand: var(--fg-on-brand);
+  --color-fg-on-accent: var(--fg-on-accent);
+
+  /* 边框 */
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
+
+  /* 强调 */
+  --color-accent: var(--accent);
+  --color-accent-on: var(--accent-on);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-border: var(--accent-border);
+
+  /* 语义 */
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-neutral: var(--neutral);
+  --color-neutral-bg: var(--neutral-bg);
+
+  /* 风险四级 */
+  --color-risk-high: var(--risk-high-fg);
+  --color-risk-high-bg: var(--risk-high-bg);
+  --color-risk-medium: var(--risk-medium-fg);
+  --color-risk-medium-bg: var(--risk-medium-bg);
+  --color-risk-low: var(--risk-low-fg);
+  --color-risk-low-bg: var(--risk-low-bg);
+  --color-risk-pending: var(--risk-pending-fg);
+  --color-risk-pending-bg: var(--risk-pending-bg);
+
+  /* 状态六态 */
+  --color-state-idle: var(--state-idle-fg);
+  --color-state-idle-bg: var(--state-idle-bg);
+  --color-state-running: var(--state-running-fg);
+  --color-state-running-bg: var(--state-running-bg);
+  --color-state-paused: var(--state-paused-fg);
+  --color-state-paused-bg: var(--state-paused-bg);
+  --color-state-success: var(--state-success-fg);
+  --color-state-success-bg: var(--state-success-bg);
+  --color-state-partial: var(--state-partial-fg);
+  --color-state-partial-bg: var(--state-partial-bg);
+  --color-state-failed: var(--state-failed-fg);
+  --color-state-failed-bg: var(--state-failed-bg);
+
+  /* 字体（别名规避与 :root 变量同名自引用） */
+  --font-brand: var(--font-display);
+  --font-text: var(--font-body);
+  --font-code: var(--font-mono);
+
+  /* 圆角与阴影（同样使用别名规避自引用） */
+  --radius-control: var(--radius-sm);
+  --radius-card-token: var(--card-radius);
+  --radius-sheet: var(--modal-radius);
+  --shadow-ring: var(--elev-ring);
+  --shadow-raised: var(--elev-raised);
+  --shadow-overlay: var(--elev-overlay);
+}
+
+/* ------------------------------------------------------------------ 基础 */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: var(--leading-body);
+    font-weight: var(--weight-read);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 标题层级：不用强调色，用 --fg + 字重 + 字号表达层次（§5.4） */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--fg);
+    font-weight: var(--weight-emphasize);
+    line-height: var(--leading-tight);
+    margin: 0;
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-announce);
+    letter-spacing: var(--tracking-display);
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    letter-spacing: var(--tracking-display);
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+  }
+
+  /* 数字列：等宽 + tabular-nums */
+  .tabular-nums,
+  table td,
+  code,
+  kbd {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 焦点可见：统一 3px 环（tokens.css 已定义，此处仅兜底） */
+  :focus-visible {
+    outline: none;
+  }
+}
+
+/* ------------------------------------------------------------------ 工具 */
+
+@layer utilities {
+  /* 表格行高跟随密度档（§5.6） */
+  .row-h {
+    height: var(--table-row-h);
+  }
+
+  /* 打印态：隐藏导航与交互控件，保留 1px 分隔（§2.6 P10） */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    body {
+      background-color: var(--surface);
+    }
+  }
+}
+
+/* 减少动效：装饰性过渡归零，功能性进度仍由组件以状态文本表达（§8.5） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,341 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "dbdlp 数据库敏感数据发现平台 · 架构总览",
+    "output": "archify/architecture-dbdlp-20261114-112500/dbdlp-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN"
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "安全/合规人员",
+      "sublabel": "审计与整改",
+      "pos": [
+        40,
+        270
+      ],
+      "size": [
+        110,
+        64
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Web 控制台",
+      "sublabel": "Next.js SPA web/out",
+      "pos": [
+        200,
+        270
+      ],
+      "size": [
+        135,
+        60
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "frontend",
+      "label": "CLI",
+      "sublabel": "cobra 子命令",
+      "pos": [
+        290,
+        410
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "interfaces/http",
+      "sublabel": "REST 32 端点 :8080",
+      "pos": [
+        365,
+        270
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "app",
+      "type": "backend",
+      "label": "application 用例层",
+      "sublabel": "datasource 门禁 / scan 编排",
+      "pos": [
+        535,
+        270
+      ],
+      "size": [
+        150,
+        72
+      ]
+    },
+    {
+      "id": "domain",
+      "type": "backend",
+      "label": "domain 领域核心",
+      "sublabel": "port · 规则 · 检测 · 聚合",
+      "pos": [
+        535,
+        64
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "rulesfile",
+      "type": "database",
+      "label": "自定义规则",
+      "sublabel": "configs/rules.yaml",
+      "pos": [
+        920,
+        64
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "drivers",
+      "type": "backend",
+      "label": "datasource 驱动",
+      "sublabel": "oracle / dameng / sqlite",
+      "pos": [
+        725,
+        270
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "只读守卫"
+    },
+    {
+      "id": "oracle",
+      "type": "database",
+      "label": "被扫描 Oracle",
+      "sublabel": "11g :1521 只读",
+      "pos": [
+        950,
+        180
+      ],
+      "size": [
+        135,
+        60
+      ]
+    },
+    {
+      "id": "dm",
+      "type": "database",
+      "label": "被扫描达梦",
+      "sublabel": "DM8 :5236 只读",
+      "pos": [
+        950,
+        360
+      ],
+      "size": [
+        135,
+        60
+      ]
+    },
+    {
+      "id": "crypto",
+      "type": "security",
+      "label": "crypto 加密",
+      "sublabel": "AES-256-GCM / SM4",
+      "pos": [
+        120,
+        470
+      ],
+      "size": [
+        145,
+        60
+      ],
+      "tag": "密钥 0600"
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "store 存储",
+      "sublabel": "SQLite WAL 14 表",
+      "pos": [
+        435,
+        470
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "reporter",
+      "type": "backend",
+      "label": "reporter 报告",
+      "sublabel": "Excel 六 Sheet / HTML / JSON",
+      "pos": [
+        725,
+        470
+      ],
+      "size": [
+        155,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "dbdlp 单体进程（Go 1.26）",
+      "wraps": [
+        "web",
+        "cli",
+        "api",
+        "app",
+        "domain",
+        "drivers",
+        "store",
+        "reporter",
+        "crypto"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "只读防线：SQL 白名单 + 占位符绑定 + 只读账号",
+      "wraps": [
+        "drivers"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "user-web",
+      "from": "user",
+      "to": "web",
+      "label": "控制台操作",
+      "variant": "emphasis"
+    },
+    {
+      "id": "user-cli",
+      "from": "user",
+      "to": "cli",
+      "label": "命令行"
+    },
+    {
+      "id": "web-api",
+      "from": "web",
+      "to": "api",
+      "label": "REST JSON"
+    },
+    {
+      "id": "api-app",
+      "from": "api",
+      "to": "app",
+      "label": "调用用例"
+    },
+    {
+      "id": "cli-app",
+      "from": "cli",
+      "to": "app",
+      "label": "调用用例"
+    },
+    {
+      "id": "app-domain",
+      "from": "app",
+      "to": "domain",
+      "label": "编排端口/纯函数"
+    },
+    {
+      "id": "domain-rules",
+      "from": "domain",
+      "to": "rulesfile",
+      "label": "加载 YAML 规则"
+    },
+    {
+      "id": "app-drivers",
+      "from": "app",
+      "to": "drivers",
+      "label": "经 port 只读采样"
+    },
+    {
+      "id": "drivers-impl",
+      "from": "drivers",
+      "to": "domain",
+      "label": "实现端口（依赖倒置）",
+      "variant": "dashed"
+    },
+    {
+      "id": "drivers-ora",
+      "from": "drivers",
+      "to": "oracle",
+      "label": "go-ora SELECT",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "drivers-dm",
+      "from": "drivers",
+      "to": "dm",
+      "label": "dm SELECT",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "app-store",
+      "from": "app",
+      "to": "store",
+      "label": "任务/台账/审计落库"
+    },
+    {
+      "id": "app-crypto",
+      "from": "app",
+      "to": "crypto",
+      "label": "凭据 ENC() 加密"
+    },
+    {
+      "id": "app-reporter",
+      "from": "app",
+      "to": "reporter",
+      "label": "三格式导出"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "四层 DDD · 依赖只向内",
+      "items": [
+        "interfaces（cli/http）→ application 用例 → domain 端口",
+        "infrastructure 实现 domain 端口（依赖倒置注入）",
+        "domain 零外层依赖：识别流水线 字节扫描→正则→校验器→自定义规则"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "扫描主旅程",
+      "items": [
+        "元数据采集 → 每列 20 行主键分页采样（无深偏移）",
+        "聚合分级：高风险须「校验过＋列名吻合」，仅格式命中进待复核",
+        "断点续扫 checkpoint、单表失败不阻断、失败重试"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "安全与合规",
+      "items": [
+        "只读三防线：只读账号 / ReadOnlyConn 无 Exec / SQL 白名单守卫",
+        "凭据 ENC(base64) 加密落库，密钥 .dbdlp/key 0600，失败即中止",
+        "脱敏三处：SQL 字面量 / 运行日志 / 报告文件；127.0.0.1 保留"
+      ]
+    }
+  ]
+}

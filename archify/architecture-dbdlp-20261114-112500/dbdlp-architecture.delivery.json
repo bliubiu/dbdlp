@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "93a3c6d4-c3a0-43ae-868c-5e9182275870",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\19-Training\\learngo\\dbdlp\\.archify\\architecture-dbdlp-20261114-112500\\candidate.review2.json",
+  "output": "D:\\19-Training\\learngo\\dbdlp\\archify\\architecture-dbdlp-20261114-112500\\dbdlp-architecture.html",
+  "specification": {
+    "sha256": "b3a966f2ef0fc184708d83b043c1d32e30a5c700ac1617dabb58d19027818211",
+    "bytes": 6737
+  },
+  "artifact": {
+    "sha256": "7216ae2d4f688fcbba0465c3ac53dd90082b23939fcb3129c10d22aa371f106f",
+    "bytes": 838740
+  }
+}

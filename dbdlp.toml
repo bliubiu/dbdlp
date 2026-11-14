@@ -1,0 +1,88 @@
+# dbdlp 运行配置（唯一运行入口，docs/06 §1.1）
+#
+# 优先级（不可协商）：命令行参数 ＞ 本文件 ＞ 内置默认值。
+# 本文件缺失时全字段走默认值，进程仍可启动。
+# 相对路径一律相对「配置目录」解析（--config 指定，默认项目根目录）。
+
+[app]
+name = "dbdlp"
+env = "prod"
+timezone = "Local"
+
+[log]
+# TRACE / DEBUG / INFO / WARN / ERROR，默认 INFO
+level = "INFO"
+# 日志目录，相对配置目录解析；按日轮转，文件名 dbdlp-YYYYMMDD.log
+dir = "logs"
+# 是否同时输出到终端
+console = true
+# 保留天数，不允许小于 32
+retention_days = 32
+# 日志文件名前缀
+file_prefix = "dbdlp"
+
+[storage]
+driver = "sqlite"
+sqlite_path = "data/dbdlp.db"
+wal = true
+busy_timeout_ms = 5000
+# sqlite 驱动必须为 1
+max_open_conns = 1
+postgres_dsn = ""
+
+[crypto]
+# aes256gcm 或 sm4gcm
+default_algorithm = "aes256gcm"
+# 32 字节密钥文件，相对配置目录解析；首次运行自动生成（0600）
+key_file = ".dbdlp/key"
+# 密钥文件权限（十进制 0600 = 384）
+key_file_mode = 384
+
+[scan]
+# 每列采样行数，1~1000
+sample_rows = 20
+# 批大小，1~500 且 ≤ sample_rows
+batch_size = 20
+# 并发度，1~4
+concurrency = 1
+# 批次间隔（毫秒）
+batch_interval_ms = 50
+# 单次查询超时（毫秒）
+query_timeout_ms = 30000
+# 单任务超时（分钟）
+task_timeout_min = 120
+# 单值最大文本长度，1~65535（CLOB 截断上限）
+max_text_len = 2000
+# 大表阈值（行数），超过则降级采样
+large_table_rows = 10000000
+# 是否跳过二进制列
+skip_binary = true
+# 低峰窗口，格式 HH:MM-HH:MM；窗口外暂停查询
+low_peak_window = "22:00-06:00"
+# 失败重试次数
+retry_max = 3
+
+[engine]
+# 自定义规则文件，相对配置目录解析；文件缺失时回退内置规则
+rules_file = "configs/rules.yaml"
+# 规则未声明阈值时的默认置信阈值
+default_threshold = 0.5
+# 本期恒定 false（不做 NER 语义识别）
+enable_ner = false
+
+[report]
+# 报告输出目录，相对配置目录解析
+out_dir = "reports"
+formats = ["excel", "html", "json"]
+# 是否只输出掩码样例（强制为 true）
+mask_samples = true
+
+[web]
+# 是否启用 Web 控制台
+enabled = true
+# HTTP 监听地址
+listen = "127.0.0.1:8080"
+# 会话有效期（分钟）
+session_ttl_min = 480
+# 前端静态资源目录（Next.js 静态导出产物），相对配置目录解析
+static_dir = "web/out"
