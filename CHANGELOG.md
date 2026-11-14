@@ -3,6 +3,49 @@
 > 版本规范：CalVer `YYYY.MM.DD.MICRO`（年.月.日.迭代号）
 > 说明：2026.11.14 起进入**代码实施**阶段，此前条目为文档体系迭代记录。
 
+## [ 2026.11.14.5 ] - 0.4.2
+
+### ✨ New Features 新增功能
+
+- 【IT-06 单表失败不阻断】扫描编排由「全库一次跑完再统一提交」重构为「模式 → 表」分组逐表扫描（`internal/application/scan/pipeline.go`）：单表采样/识别失败只记 `failed` 断点并继续下一张表，**失败表的台账整体作废不入库**（避免重试产生重复行），台账改为**按表增量落库**（进程中断不再整批丢失）。任务状态按结果判定：有失败表 → `partial`，一张都没扫成 → `failed`，否则 `done`。
+- 【失败表可重试 / 断点续扫】新增 `RetryFailed`、`RetryFailedTables`（支持 `targetIds` 定向重试「模式/表」）、`Resume`（重新枚举目标库、跳过 `done` 断点、覆盖中断后未触及的表）；`scan_checkpoint` 唯一键 `(task_id, table_meta_id, column_name)` 承载 `pending`/`failed`/`done` 三态。`port.Store` 新增 `ListCheckpoints`（返回全部断点，含 `done`），`ListPendingCheckpoints` 复用同一查询助手。
+- 【接口与 CLI 接线】`POST /api/v1/tasks/{id}/retry` 由状态迁移存根改为**同步真实重扫**，响应 `{retried, newFindings, remaining, status}` 并写审计与 INFO 日志；错误按哨兵映射（`ErrTaskNotRetryable`→3001、`ErrNoFailedTable`/`ErrTargetNotFailed`→1004、其余→5000）。新增 `dbdlp retry --task` 与 `dbdlp resume --task`（均支持 `--report` 多格式、`--out`）。
+- 【元数据幂等】`SaveMetadata` 改为先复用任务内已有的 `schema_meta`/`table_meta` ID，`column_meta` 走 `ON CONFLICT ... DO UPDATE`，支撑续扫补齐元数据而不撞唯一约束。
+- 【内置规则补齐】新增 IPv6／MAC／域名三条内置规则与 `ipv6`／`mac`／`domain` 三个校验器（`internal/domain/rule`）：IPv6 覆盖完整 8 组／`::` 压缩／内嵌 IPv4 映射形态（`net.ParseIP` 精确判定，拒绝全压缩空地址 `::` 与双 `::`）；MAC 要求分隔符一致；域名校验标签字符集／长度／TLD 纯字母并排除 IPv4 形态。正负样本单测覆盖（负样本：双 `::`／9 组／含 `G`／5 组／混合分隔符／无 TLD 等），对应 `testdata` 预留列，复扫验证命中。
+- 【HTML 审计报告八章节】`internal/infrastructure/reporter/html_report.go`（新文件，保持单文件 ≤300 行门禁）按 `docs/02` §14.1 与 `docs/04` §4 原型实现八章节 HTML 报告：扫描概况（KPI＋条形）→ 风险汇总（C1 环形 SVG＋C3 类型 TOP）→ 高/中/待复核清单 → 加密脱敏现状 → 整改建议 → 附录（规则清单＋任务记录）；风险徽章三重编码、掩码样例弱底、四级色彩语义与后端六值收敛。浏览器渲染验收通过。
+
+### 🐛 Bug Fixes 问题修复
+
+- 【前后端任务状态枚举错位】前端 `TaskStatus` 误把 `docs/04 §4.5` 的**设计令牌名** `--state-idle-*` / `--state-success-*` 当成接口枚举值（`idle`/`success`），而后端 `port.TaskStatus` 实际为 `pending`/`done`。后果：成功任务的进度轮询永不停止、状态徽章与筛选下拉值全部失配。已把 `web/types/api.ts` 对齐为 `pending/running/paused/done/partial/failed`，同步修正 `lib/format.ts`（标签与 `isTerminalStatus`）、`components/business/tasks.tsx`（徽章与筛选值）、`components/business/reports.tsx`（报告状态徽章）、两个 Zustand 切片的轮询终止判断（统一走 `isTerminalStatus`）。
+- 【任务汇总字段名双轨导致页面静默失配】后端 `TaskSummaryView` 下发 `tableCount/columnCount/hitColumnCount/failedCount`，前端 `TaskSummary` 却读 `totalTables/totalColumns/hitColumns/failedTables`，导致「命中列恒显示 0 / 0」「失败表恒 0」「重试按钮恒禁用」「失败对象清单恒空」。已在后端补齐与原始计数同源的控制台契约字段，并在 `handleGetTask` 用 `scan_checkpoint` 真实统计 `doneTables`/`failedTables` 与 `failedObjects`（`id` 即断点键「模式/表」，可直接作为 `targetIds` 回传）；列表接口不查断点，避免 N+1。
+- 【重试响应语义】前端 `retryTask` 原声明 `{ retried }` 且提示「已重新提交」，与后端真实重扫语义不符；现声明 `{retried, newFindings, remaining, status}` 并提示实际重扫表数、新增命中与剩余失败表，确认按钮文案改为「重试失败对象」。
+- 【前端既有类型错误】`web/services/datasources.ts` 缺失 `requestEnvelope`/`ApiError`/`ApiErrorCode`/`ImportResult`/`ImportErrorRow` 导入，且 `normalizeImportResult` 把未知结构误断言为 `ImportErrorRow`，`tsc --noEmit` 报 18 处错误。已补齐导入并把逐行原始值按 `unknown[]` 归一化。
+
+### 📈 Improvements 性能/体验优化
+
+- 重试/续扫共用 `scanEnv` 装配（`env.go`）与 `datasourceConfig`/`splitTableKey`（`datasource.go`），消除重复代码并满足单文件 ≤300 行门禁；删除被取代的 `failed.go`（事后过滤方案）。
+- 新增 `internal/application/scan/retry_test.go`（3 用例：单表失败不阻断且可重试、指定对象重试不重跑成功表、续扫跳过已完成表）与 `internal/interfaces/http/task_retry_test.go`（2 用例：部分失败→修复→定向重试→done 且台账两表各一条无明文；404/1004、401/1002、409/3001 错误码）。后者额外断言控制台契约字段与 `targetIds` 闭环。
+- CLI 端到端脚本 `.tmp/e2e_retry.py` 走通 `init → datasource add → scan → 三格式报告 → retry/resume`，台账 2 条、断点全 `done`、任务 `done`。
+- 【限速与低峰执行落地】`internal/application/scan/scheduling.go`（新文件）：批次间歇 `batch_interval_ms` 在采样循环批间生效（`paceBatch`，ctx 可取消）；低峰窗口 `low_peak_window` 由编排消费——窗口外暂停采样查询并轮询等待（`waitLowPeak`，支持跨午夜窗口，非法/空窗口视为不限）；`assembly` 经 `WithScheduling` 注入。`inLowPeakWindow`／`parseHM` 单测覆盖跨午夜与边界。
+
+### 📚 Docs 文档更新
+
+- `.tmp/gate05_check.py`（临时校验脚本，非交付物）按正确口径复核 GATE-05：单文件代码行 ≤300、入口 <100、domain/application/interfaces 依赖方向。
+
+### 核验结果（可复现）
+
+- `go build ./...`、`go vet ./...`、`go test ./...` 全绿（含 `internal/interfaces/http` 与 `internal/application/scan` 定向复跑 `-count=1`）；`gofmt -l .` 为空。
+- `npx tsc --noEmit` 通过；`npm run build`（Next.js 16.4.6 / Turbopack）编译成功，16 个静态页面全部生成。
+- GATE-05：最大单文件 274 代码行（`internal/interfaces/http/views.go`）、`cmd/dbdlp/main.go` 32 代码行、分层依赖方向检查通过。
+
+### 已知未实现／如实标注
+
+- `skippedTables` 本期固定返回 0：后端尚未统计 `excludeTables`/`excludeColumns` 过滤掉的表数，UI 保留该字段但数值不代表真实跳过量。
+- `GET /datasources/{id}/metadata?refresh=true` 仍读上次扫描元数据（缺应用层 `CollectMetadata`）；`POST /tasks` 的 `sampleRows/batchSize/concurrency` 仍仅校验未生效（审计已注明「本次未生效」）；`pause` 仍为状态迁移（无执行体中断钩子，`resume` 已能按表续扫）；前端 `Dialect` 枚举（`dm`/`postgresql`/`kingbase`）与后端产品方言（`dameng`/`postgres`/`opengauss`）仍有偏差。
+- HTTP 端到端脚本因 API 只接受 5 种产品方言、SQLite 目标适配器属测试专用，创建数据源处被 1001 拒绝；HTTP 成功路径改由 Go 测试覆盖。
+
+---
+
 ## [ 2026.11.14.4 ] - 0.4.1
 
 ### ✨ New Features 新增功能

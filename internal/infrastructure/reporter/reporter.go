@@ -74,56 +74,16 @@ type htmlReporter struct{}
 
 func (r *htmlReporter) Format() port.ReportFormat { return port.FormatHTML }
 
-func (r *htmlReporter) Export(_ context.Context, bundle port.ReportBundle, outDir string) (string, error) {
-	path, err := outPath(outDir, bundle.Task.ID, "html")
-	if err != nil {
-		return "", err
-	}
-	riskCount := map[string]int{}
-	for _, f := range bundle.Findings {
-		riskCount[f.RiskLevel]++
-	}
-	var b strings.Builder
-	b.WriteString("<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\">")
-	b.WriteString("<title>dbdlp 敏感数据发现报告</title>")
-	b.WriteString("<style>body{font-family:-apple-system,Segoe UI,Roboto,'Microsoft YaHei',sans-serif;margin:24px;color:" + colText + "}")
-	b.WriteString("table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid " + colBorder + ";padding:6px 8px;text-align:left}")
-	b.WriteString("th{background:" + colHeadBG + "}.high{color:" + colHighRisk + "}.pill{display:inline-block;padding:1px 6px;border-radius:8px;background:" + colPillBG + ";margin:1px}")
-	b.WriteString("h1{font-size:20px}h2{font-size:16px;margin-top:24px}.meta{color:" + colMuted + ";font-size:12px}</style></head><body>")
-	b.WriteString("<h1>数据库敏感数据发现报告</h1>")
-	b.WriteString(fmt.Sprintf("<div class=\"meta\">任务：%s ｜ 数据源：%s ｜ 生成时间：%s</div>",
-		bundle.Task.ID, bundle.Task.DataSourceID, time.Now().Format("2006-01-02 15:04:05")))
-	b.WriteString("<h2>风险分布</h2><p>")
-	for _, lvl := range []string{"high", "medium_high", "medium", "medium_low", "low", "pending_review"} {
-		if c, ok := riskCount[lvl]; ok {
-			b.WriteString(fmt.Sprintf("<span class=\"pill\">%s：%d</span> ", lvl, c))
-		}
-	}
-	b.WriteString(fmt.Sprintf("｜ 合计命中字段：%d</p>", len(bundle.Findings)))
-	b.WriteString("<h2>敏感字段台账</h2>")
-	b.WriteString("<table><thead><tr><th>库</th><th>表</th><th>字段</th><th>类型</th><th>敏感类型</th>")
-	b.WriteString("<th>命中/采样</th><th>命中率</th><th>验证</th><th>置信度</th><th>风险</th><th>脱敏样例</th></tr></thead><tbody>")
-	for _, f := range bundle.Findings {
-		riskClass := ""
-		if f.RiskLevel == "high" || f.RiskLevel == "medium_high" {
-			riskClass = " class=\"high\""
-		}
-		types := strings.Join(f.SensitiveTypes, "、")
-		b.WriteString(fmt.Sprintf("<tr%s><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>",
-			riskClass, esc(f.SchemaName), esc(f.TableName), esc(f.ColumnName), esc(f.DataType), esc(types)))
-		b.WriteString(fmt.Sprintf("<td>%d/%d</td><td>%.2f</td><td>%v</td><td>%s</td><td>%s</td><td>%s</td></tr>",
-			f.SampleHit, f.SampleTotal, f.HitRatio, f.VerifyPassed, esc(f.Confidence), esc(f.RiskLevel), esc(f.SampleMasked)))
-	}
-	b.WriteString("</tbody></table>")
-	b.WriteString("<p class=\"meta\">说明：样例均为脱敏形态，不含完整明文；本报告仅用于内部安全合规。</p>")
-	b.WriteString("</body></html>")
-	if err := os.WriteFile(path, []byte(b.String()), 0o600); err != nil {
-		return "", fmt.Errorf("写入报告失败：%w", err)
-	}
-	return path, nil
+// toValidUTF8 把含非法 UTF-8 字节的字符串规范为合法 UTF-8：将任何非法字节序列
+// 替换为 U+FFFD。该降级行为刻意与 encoding/json 对非 ASCII 字节的处理保持一致，
+// 确保任何来源（如数据库驱动字符集协商异常引入的 GBK 残留字节）的脏数据都不会
+// 让 HTML/Excel 报告产物成为非法编码文件，避免浏览器预览或 Excel 解析乱码、崩溃。
+func toValidUTF8(s string) string {
+	return strings.ToValidUTF8(s, "\uFFFD")
 }
 
 func esc(s string) string {
+	s = toValidUTF8(s)
 	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;")
 	return r.Replace(s)
 }

@@ -58,6 +58,24 @@ func BuiltinRules() []port.Rule {
 			Regex: `^0\d{2,3}-?\d{7,8}$`, Threshold: 0.5,
 			Bytescan: port.BytescanSpec{MinLen: 11, MaxLen: 13},
 		},
+		{
+			RuleID: "IPV6", SensitiveType: "IPV6", Enabled: true,
+			Regex:    `^(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|^(?:[0-9A-Fa-f]{1,4}:){1,7}:|^(?:[0-9A-Fa-f]{1,4}:){1,6}:[0-9A-Fa-f]{1,4}|^(?:[0-9A-Fa-f]{1,4}:){1,5}(?::[0-9A-Fa-f]{1,4}){1,2}|^(?:[0-9A-Fa-f]{1,4}:){1,4}(?::[0-9A-Fa-f]{1,4}){1,3}|^(?:[0-9A-Fa-f]{1,4}:){1,3}(?::[0-9A-Fa-f]{1,4}){1,4}|^(?:[0-9A-Fa-f]{1,4}:){1,2}(?::[0-9A-Fa-f]{1,4}){1,5}|^[0-9A-Fa-f]{1,4}:(?::[0-9A-Fa-f]{1,4}){1,6}|^:(?::[0-9A-Fa-f]{1,4}){1,7}|^::(?:[fF]{4}:)?(?:[0-9]{1,3}\.){3}[0-9]{1,3}|^(?:[0-9A-Fa-f]{1,4}:){1,4}:(?:[0-9]{1,3}\.){3}[0-9]{1,3}`,
+			Verifier: "ipv6", Threshold: 0.6,
+			Bytescan: port.BytescanSpec{MinLen: 2, MaxLen: 45},
+		},
+		{
+			RuleID: "MAC", SensitiveType: "MAC", Enabled: true,
+			Regex:    `^[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}$|^[0-9A-Fa-f]{2}(?:-[0-9A-Fa-f]{2}){5}$`,
+			Verifier: "mac", Threshold: 0.6,
+			Bytescan: port.BytescanSpec{MinLen: 14, MaxLen: 17},
+		},
+		{
+			RuleID: "DOMAIN", SensitiveType: "DOMAIN", Enabled: true,
+			Regex:    `^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$`,
+			Verifier: "domain", Threshold: 0.6,
+			Bytescan: port.BytescanSpec{MinLen: 4, MaxLen: 253},
+		},
 	}
 }
 

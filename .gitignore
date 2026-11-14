@@ -1,6 +1,6 @@
 # Go 构建产物
 dbdlp.exe
-dbdlp
+/dbdlp
 *.test
 *.out
 

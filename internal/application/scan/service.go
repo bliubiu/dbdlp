@@ -20,6 +20,8 @@ type Service struct {
 	logger          port.Logger
 	sampleRows      int
 	maxTextLen      int
+	batchIntervalMs int
+	lowPeakWindow   string
 }
 
 // 本文件实现扫描编排：元数据 → 采样 → 识别 → 聚合 → 台账 → 报告。

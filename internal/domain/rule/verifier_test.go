@@ -122,3 +122,51 @@ func TestGetVerifierUnknown(t *testing.T) {
 		t.Errorf("未注册校验器应返回 nil")
 	}
 }
+
+func TestIPv6Verifier(t *testing.T) {
+	pos := []string{
+		"2001:db8::1", "2001:0db8:0000:0000:0000:0000:0000:0001", "::ffff:192.168.1.1",
+		"fe80::1", "::1", "fd12:3456:789a::1", "2001:db8:1:2:3:4:5:6", "::ffff:10.0.0.1",
+	}
+	neg := []string{"2001:db8:::1", "2001:db8:0:0:0:0:0:1:2", "gggg::1", "::", "AA:BB:CC:DD:EE:FF", "192.168.1.1", "2001:db8"}
+	for _, v := range pos {
+		if !ipv6(v) {
+			t.Errorf("期望通过：%s", v)
+		}
+	}
+	for _, v := range neg {
+		if ipv6(v) {
+			t.Errorf("期望拒绝：%s", v)
+		}
+	}
+}
+
+func TestMACVerifier(t *testing.T) {
+	pos := []string{"AA:BB:CC:DD:EE:FF", "aa:bb:cc:dd:ee:ff", "00-1A-2B-3C-4D-5E", "08:00:27:aa:bb:cc"}
+	neg := []string{"AA:BB:CC:DD:EE", "AA:BB:CC:DD:EE:FF:00", "AA:BB:CG:DD:EE:FF", "AA::BB:CC:DD:EE:FF", "AA-BB:CC-DD-EE-FF", "AABBCCDDEEFF"}
+	for _, v := range pos {
+		if !mac(v) {
+			t.Errorf("期望通过：%s", v)
+		}
+	}
+	for _, v := range neg {
+		if mac(v) {
+			t.Errorf("期望拒绝：%s", v)
+		}
+	}
+}
+
+func TestDomainVerifier(t *testing.T) {
+	pos := []string{"www.example.com", "api.shili-tech.com.cn", "blog.developer.shili.io", "x.co"}
+	neg := []string{"example", "user@example.com", "-example.com", "example..com", "192.168.1.1", "example.c", "www.example.com.."}
+	for _, v := range pos {
+		if !domainVerifier(v) {
+			t.Errorf("期望通过：%s", v)
+		}
+	}
+	for _, v := range neg {
+		if domainVerifier(v) {
+			t.Errorf("期望拒绝：%s", v)
+		}
+	}
+}

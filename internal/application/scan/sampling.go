@@ -45,6 +45,10 @@ func (s *Service) sampleAndDetect(ctx context.Context, driver port.Driver, conn 
 			break
 		}
 		lastKey = batch.LastKey
+		// 批次间歇限速（docs/02 §8.6 分批限流）
+		if err := s.paceBatch(ctx); err != nil {
+			return total, hits, err
+		}
 	}
 	return total, hits, nil
 }

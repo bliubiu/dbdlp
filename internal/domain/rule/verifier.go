@@ -2,6 +2,7 @@
 package rule
 
 import (
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,6 +23,9 @@ var registry = map[string]verifierFunc{
 	"plate":              plate,
 	"postcode":           postcode,
 	"ipv4":               ipv4,
+	"ipv6":               ipv6,
+	"mac":                mac,
+	"domain":             domainVerifier,
 }
 
 // GetVerifier 取已注册校验器；未注册返回 nil。
@@ -173,6 +177,81 @@ func ipv4(s string) bool {
 		n, err := strconv.Atoi(p)
 		if err != nil || n < 0 || n > 255 {
 			return false
+		}
+	}
+	return true
+}
+
+// ipv6 合法 IPv6（含 :: 压缩与内嵌 IPv4 映射形态），交给标准库精确判定。
+func ipv6(s string) bool {
+	if s == "::" { // 全压缩空地址（未指定地址）不作为业务数据值
+		return false
+	}
+	ip := net.ParseIP(s)
+	return ip != nil && strings.Contains(s, ":")
+}
+
+// mac MAC 地址：冒号或连字符分隔的 6 组十六进制，分隔符一致。
+func mac(s string) bool {
+	if len(s) != 17 {
+		return false
+	}
+	sep := byte(':')
+	if s[2] == '-' {
+		sep = '-'
+	} else if s[2] != ':' {
+		return false
+	}
+	for i := 0; i < 17; i++ {
+		c := s[i]
+		if i%3 == 2 {
+			if c != sep {
+				return false
+			}
+			continue
+		}
+		if !isHexDigit(c) {
+			return false
+		}
+	}
+	return true
+}
+
+func isHexDigit(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+}
+
+// domainVerifier 域名：总长与标签长度合法、标签字符集 [a-zA-Z0-9-] 且首尾非连字符、
+// TLD 为纯字母，并排除 IPv4 形态误命中。
+func domainVerifier(s string) bool {
+	if len(s) > 253 || net.ParseIP(s) != nil {
+		return false
+	}
+	labels := strings.Split(s, ".")
+	if len(labels) < 2 {
+		return false
+	}
+	for i, l := range labels {
+		if len(l) == 0 || len(l) > 63 {
+			return false
+		}
+		if l[0] == '-' || l[len(l)-1] == '-' {
+			return false
+		}
+		for _, r := range l {
+			if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-') {
+				return false
+			}
+		}
+		if i == len(labels)-1 {
+			if len(l) < 2 { // 顶级域至少 2 个字母
+				return false
+			}
+			for _, r := range l {
+				if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')) {
+					return false
+				}
+			}
 		}
 	}
 	return true
