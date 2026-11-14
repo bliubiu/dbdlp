@@ -55,6 +55,11 @@ func (s *Service) RetryFailed(ctx context.Context, taskID, reportFormat, outDir 
 //   - 重扫成功的表断点置为 done；仍失败的表断点保持 failed 并刷新失败原因；
 //   - 全部失败表重扫成功后任务状态回到 done，否则保持 partial。
 func (s *Service) RetryFailedTables(ctx context.Context, taskID string, tableKeys []string, reportFormat, outDir string) (RetryResult, error) {
+	res, err := s.retryFailedTablesImpl(ctx, taskID, tableKeys, reportFormat, outDir)
+	return s.runRetryResult(ctx, "task.retry", taskID, res, err)
+}
+
+func (s *Service) retryFailedTablesImpl(ctx context.Context, taskID string, tableKeys []string, reportFormat, outDir string) (RetryResult, error) {
 	res := RetryResult{TaskID: taskID}
 	task, err := s.store.GetTask(ctx, taskID)
 	if err != nil {

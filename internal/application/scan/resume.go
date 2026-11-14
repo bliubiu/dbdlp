@@ -18,6 +18,11 @@ import (
 //   - 本轮会重新枚举目标库，覆盖上次扫描尚未触及的表（无断点记录的表同样会被扫到）；
 //   - 全部表续扫成功后任务状态回到 done，否则保持 partial。
 func (s *Service) Resume(ctx context.Context, taskID, reportFormat, outDir string) (RetryResult, error) {
+	res, err := s.resumeImpl(ctx, taskID, reportFormat, outDir)
+	return s.runRetryResult(ctx, "task.resume", taskID, res, err)
+}
+
+func (s *Service) resumeImpl(ctx context.Context, taskID, reportFormat, outDir string) (RetryResult, error) {
 	res := RetryResult{TaskID: taskID}
 	task, err := s.store.GetTask(ctx, taskID)
 	if err != nil {

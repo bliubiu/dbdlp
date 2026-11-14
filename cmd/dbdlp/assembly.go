@@ -89,7 +89,8 @@ func NewApp(configDir string) (*App, error) {
 	rulesLoader := func() ([]port.Rule, string, error) { return rule.BuildRules(cfg.RulesFilePath()) }
 
 	scanSvc := scan.NewService(st, driverFactory, reporterFactory, rulesLoader, cipher.Decrypt, logger, cfg.Scan.SampleRows, cfg.Scan.MaxTextLen).
-		WithScheduling(cfg.Scan.BatchIntervalMs, cfg.Scan.LowPeakWindow)
+		WithScheduling(cfg.Scan.BatchIntervalMs, cfg.Scan.LowPeakWindow).
+		WithAuditActor("cli")
 	dsSvc := datasource.NewService(st, driverFactory, cipher, cfg.DefaultAlgorithm(), logger)
 
 	// 控制台管理员引导：仅在提供环境变量且账号尚不存在时创建，已存在则不覆盖口令。

@@ -22,6 +22,7 @@ type Service struct {
 	maxTextLen      int
 	batchIntervalMs int
 	lowPeakWindow   string
+	auditActor      string
 }
 
 // 本文件实现扫描编排：元数据 → 采样 → 识别 → 聚合 → 台账 → 报告。
@@ -109,6 +110,7 @@ func (s *Service) runPipeline(ctx context.Context, cfg port.DataSourceConfig, sc
 	fail := func(reason string) (string, error) {
 		_ = s.store.UpdateTaskStatus(ctx, taskID, port.TaskStatusFailed, port.TaskSummary{Message: reason})
 		s.log(ctx, port.LevelERROR, "扫描任务失败", port.Field{Key: "任务", Value: taskID}, port.Field{Key: "原因", Value: reason})
+		s.auditTask(ctx, "task.start", taskID, "数据源="+cfg.Name, "failed", reason)
 		return "", fmt.Errorf("%s", reason)
 	}
 	s.log(ctx, port.LevelINFO, "扫描任务开始",
@@ -168,8 +170,14 @@ func (s *Service) runPipeline(ctx context.Context, cfg port.DataSourceConfig, sc
 	if reportFormat != "" && outDir != "" {
 		if err := s.exportReport(ctx, taskID, cfg.ID, version, out.Findings, rules, reportFormat, outDir); err != nil {
 			// 扫描本体已成功（台账与任务状态已落库），但报告交付失败：返回任务 ID 供人工补救。
+			s.auditTask(ctx, "task.start", taskID,
+				fmt.Sprintf("状态=%s，表=%d，命中=%d", status, len(out.Tables), len(out.Findings)),
+				"success", "报告导出失败："+err.Error())
 			return taskID, err
 		}
 	}
+	s.auditTask(ctx, "task.start", taskID,
+		fmt.Sprintf("状态=%s，表=%d，命中=%d", status, len(out.Tables), len(out.Findings)),
+		"success", "")
 	return taskID, nil
 }

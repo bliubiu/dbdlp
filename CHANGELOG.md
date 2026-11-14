@@ -26,6 +26,7 @@
 - 重试/续扫共用 `scanEnv` 装配（`env.go`）与 `datasourceConfig`/`splitTableKey`（`datasource.go`），消除重复代码并满足单文件 ≤300 行门禁；删除被取代的 `failed.go`（事后过滤方案）。
 - 新增 `internal/application/scan/retry_test.go`（3 用例：单表失败不阻断且可重试、指定对象重试不重跑成功表、续扫跳过已完成表）与 `internal/interfaces/http/task_retry_test.go`（2 用例：部分失败→修复→定向重试→done 且台账两表各一条无明文；404/1004、401/1002、409/3001 错误码）。后者额外断言控制台契约字段与 `targetIds` 闭环。
 - CLI 端到端脚本 `.tmp/e2e_retry.py` 走通 `init → datasource add → scan → 三格式报告 → retry/resume`，台账 2 条、断点全 `done`、任务 `done`。
+- 【CLI 任务审计补齐（DEF-01 收尾）】`internal/application/scan/audit.go`：用例层可选审计主体（`WithAuditActor("cli")`，HTTP 形态保持空串由 handler 留痕避免双写）；`Run/RunConfig` 成功/失败（含报告导出失败分支）、`RetryFailedTables`、`Resume` 统一记 `task.start`/`task.retry`/`task.resume`，detail 含状态/表数/命中数与重扫统计；真机验证 CLI 扫描审计留痕。至此 datasource 与 scan 两条 CLI 链路的审计缺口全部关闭。
 - 【限速与低峰执行落地】`internal/application/scan/scheduling.go`（新文件）：批次间歇 `batch_interval_ms` 在采样循环批间生效（`paceBatch`，ctx 可取消）；低峰窗口 `low_peak_window` 由编排消费——窗口外暂停采样查询并轮询等待（`waitLowPeak`，支持跨午夜窗口，非法/空窗口视为不限）；`assembly` 经 `WithScheduling` 注入。`inLowPeakWindow`／`parseHM` 单测覆盖跨午夜与边界。
 
 ### 📚 Docs 文档更新
