@@ -105,6 +105,20 @@ func TestRetryTaskEndpoint_部分失败可重试(t *testing.T) {
 	if summary["failedCount"] != float64(1) {
 		t.Fatalf("失败表数应为 1，实际 %v（%s）", summary["failedCount"], string(body))
 	}
+	// 控制台契约字段必须与后端原始计数同源，否则页面「命中列恒为 0」「重试按钮恒禁用」。
+	if summary["totalTables"] != summary["tableCount"] || summary["totalColumns"] != summary["columnCount"] ||
+		summary["hitColumns"] != summary["hitColumnCount"] || summary["failedTables"] != float64(1) {
+		t.Fatalf("控制台汇总字段与后端计数不一致：%v（%s）", summary, string(body))
+	}
+	objects, _ := summary["failedObjects"].([]any)
+	if len(objects) != 1 {
+		t.Fatalf("详情应下发 1 个失败对象，实际 %v（%s）", objects, string(body))
+	}
+	failed, _ := objects[0].(map[string]any)
+	failedID, _ := failed["id"].(string)
+	if failedID == "" || failed["tableName"] != "ORDERS" || failed["reason"] == "" {
+		t.Fatalf("失败对象缺少可重试标识或原因：%v（%s）", failed, string(body))
+	}
 
 	// 2) 台账只含成功表的字段。
 	res, body = doRequest(t, env.handler, http.MethodGet, "/api/v1/findings?taskId="+taskID, token, nil)
@@ -125,7 +139,9 @@ func TestRetryTaskEndpoint_部分失败可重试(t *testing.T) {
 	}
 	_ = con.Close()
 
-	res, body = doRequest(t, env.handler, http.MethodPost, "/api/v1/tasks/"+taskID+"/retry", token, map[string]any{})
+	// 用控制台详情页下发的失败对象 id 定向重试，验证 targetIds 契约可直接闭环。
+	res, body = doRequest(t, env.handler, http.MethodPost, "/api/v1/tasks/"+taskID+"/retry", token,
+		map[string]any{"targetIds": []string{failedID}})
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("重试期望 HTTP 200，实际 %d（%s）", res.StatusCode, string(body))
 	}
@@ -156,6 +172,24 @@ func TestRetryTaskEndpoint_部分失败可重试(t *testing.T) {
 	if tables["USERS"] != 1 || tables["ORDERS"] != 1 {
 		t.Fatalf("台账应含两张表各一条，实际 %v", tables)
 	}
+
+	// 5) 重试后详情回到 done，失败清单清空、完成表数按断点统计为 2。
+	res, body = doRequest(t, env.handler, http.MethodGet, "/api/v1/tasks/"+taskID, token, nil)
+	resp = decodeResp(t, body)
+	view, _ = resp.Data.(map[string]any)
+	if view["status"] != "done" {
+		t.Fatalf("重试后任务应为 done，实际 %v（%s）", view["status"], string(body))
+	}
+	summary, _ = view["summary"].(map[string]any)
+	if len(objectsAfter(summary)) != 0 || summary["doneTables"] != float64(2) || summary["failedTables"] != float64(0) {
+		t.Fatalf("重试后汇总不符：%v（%s）", summary, string(body))
+	}
+}
+
+// objectsAfter 读取失败对象数组；omitempty 导致空清单字段缺省时按空数组处理。
+func objectsAfter(summary map[string]any) []any {
+	out, _ := summary["failedObjects"].([]any)
+	return out
 }
 
 func TestRetryTaskEndpoint_状态与入参校验(t *testing.T) {

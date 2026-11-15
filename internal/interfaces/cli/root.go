@@ -117,7 +117,7 @@ func newDatasourceCmd(d *Deps) *cobra.Command {
 		},
 	}
 	add.Flags().StringVar(&name, "name", "", "数据源名称（必填）")
-	add.Flags().StringVar(&dialect, "dialect", "", "方言：oracle|dameng|sqlite（必填）")
+	add.Flags().StringVar(&dialect, "dialect", "", "方言：oracle|dameng|mysql|postgres|sqlite（必填）")
 	add.Flags().StringVar(&host, "host", "", "主机")
 	add.Flags().IntVar(&portNum, "port", 0, "端口")
 	add.Flags().StringVar(&service, "service", "", "Oracle 服务名 / 达梦库名")
@@ -143,7 +143,7 @@ func newDatasourceCmd(d *Deps) *cobra.Command {
 			return nil
 		},
 	}
-	test.Flags().StringVar(&dialect, "dialect", "", "方言（必填）")
+	test.Flags().StringVar(&dialect, "dialect", "", "方言：oracle|dameng|mysql|postgres|sqlite（必填）")
 	test.Flags().StringVar(&host, "host", "", "主机")
 	test.Flags().IntVar(&portNum, "port", 0, "端口")
 	test.Flags().StringVar(&service, "service", "", "服务名 / 库名")

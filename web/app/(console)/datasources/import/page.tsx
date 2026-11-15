@@ -96,7 +96,13 @@ export default function DataSourceImportPage() {
         </Alert>
       ) : null}
 
-      <ImportPhaseNotice phase={store.phase} failed={store.failed} />
+      <ImportPhaseNotice
+        phase={store.phase}
+        failed={store.failed}
+        allFailed={store.allFailed}
+        total={store.total}
+        serverMessage={store.serverMessage}
+      />
 
       {/* 阶段一：准备文件 */}
       <ImportDropzone
@@ -126,8 +132,8 @@ export default function DataSourceImportPage() {
         </div>
       ) : null}
 
-      {/* 阶段三：结果回显 */}
-      {store.phase === 'done' ? (
+      {/* 阶段三：结果回显。code=2001 整批失败时同样给出总数/成功/失败三数 */}
+      {store.phase === 'done' || store.allFailed ? (
         <>
           <ImportResultSummary
             total={store.total}
@@ -138,10 +144,12 @@ export default function DataSourceImportPage() {
         </>
       ) : null}
 
-      {/* 阶段四：失败处置 */}
-      {store.phase === 'done' && store.errors.length > 0 ? <ImportErrorPanel errors={store.errors} /> : null}
+      {/* 阶段四：失败处置。code=0 部分成功与 code=2001 整批失败都展示逐行明细 */}
+      {(store.phase === 'done' || store.allFailed) && store.errors.length > 0 ? (
+        <ImportErrorPanel errors={store.errors} />
+      ) : null}
 
-      {store.phase === 'done' ? (
+      {store.phase === 'done' || store.allFailed ? (
         <div className="flex flex-wrap items-center justify-between gap-[var(--space-3)]">
           <SkippedHint />
           <div className="flex items-center gap-[var(--space-2)]">

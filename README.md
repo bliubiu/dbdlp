@@ -77,4 +77,7 @@ go test ./...
 
 ## 参考项目
 
-[bytedance/godlp](https://github.com/bytedance/godlp) · [hitsz-ids/openDLP](https://github.com/hitsz-ids/openDLP) · DBMasker（Apache 2.0）
+- [bytedance/godlp](https://github.com/bytedance/godlp) 
+
+- [hitsz-ids/openDLP](https://github.com/hitsz-ids/openDLP)
+- DBMasker（Apache 2.0）

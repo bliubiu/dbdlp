@@ -20,7 +20,9 @@ func newExcel() *excelFile {
 }
 
 func (e *excelFile) setCell(sheet, coord, val string) {
-	_ = e.f.SetCellValue(sheet, coord, val)
+	// 防御性 UTF-8 规范化：数据库驱动字符集协商异常可能引入非法 UTF-8 字节，
+	// 此处与 JSON 出口保持一致，将脏数据降级为 U+FFFD，避免 xlsx 序列化时崩溃或乱码。
+	_ = e.f.SetCellValue(sheet, coord, toValidUTF8(val))
 }
 
 func (e *excelFile) save(path string) error {

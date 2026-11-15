@@ -13,6 +13,10 @@ func NewDriver(d port.Dialect) (port.Driver, error) {
 		return &oracleDriver{}, nil
 	case port.DialectDameng:
 		return &damengDriver{}, nil
+	case port.DialectMySQL:
+		return &mysqlDriver{}, nil
+	case port.DialectPostgres:
+		return &postgresDriver{}, nil
 	case port.DialectSQLite:
 		return &sqliteDriver{}, nil
 	default:

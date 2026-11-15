@@ -8,16 +8,14 @@
  */
 
 import { create } from 'zustand';
-import { importDataSources } from '@/services/datasources';
+import { ImportAllFailedError, importDataSources } from '@/services/datasources';
 import { ApiError } from '@/services/http';
+import type { ImportErrorRow } from '@/types/api';
 
 /** 导入状态机（§3.4）：idle → selected → uploading → processing → done | failed */
 export type ImportPhase = 'idle' | 'selected' | 'uploading' | 'processing' | 'done' | 'failed';
 
-export interface ImportErrorRow {
-  row: number;
-  message: string;
-}
+export type { ImportErrorRow } from '@/types/api';
 
 interface ImportState {
   phase: ImportPhase;
@@ -31,6 +29,10 @@ interface ImportState {
   succeeded: number;
   failed: number;
   errors: ImportErrorRow[];
+  /** 整批全部失败（后端 code=2001）：零写入，但逐行 errors 仍须回显 */
+  allFailed: boolean;
+  /** 后端中文 message（2001 分支用于顶部回显，逐行明细另见 errors） */
+  serverMessage: string | null;
   /** 中文阶段失败原因 */
   error: string | null;
   setFile: (file: File) => void;
@@ -54,6 +56,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
   succeeded: 0,
   failed: 0,
   errors: [],
+  allFailed: false,
+  serverMessage: null,
   error: null,
 
   setFile: (file) => {
@@ -68,6 +72,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
         fileSize: 0,
         fileRows: 0,
         errors: [],
+        allFailed: false,
+        serverMessage: null,
       });
       return;
     }
@@ -80,6 +86,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
         fileSize: 0,
         fileRows: 0,
         errors: [],
+        allFailed: false,
+        serverMessage: null,
       });
       return;
     }
@@ -91,6 +99,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
       fileRows: 0,
       error: null,
       errors: [],
+      allFailed: false,
+      serverMessage: null,
       total: 0,
       succeeded: 0,
       failed: 0,
@@ -108,6 +118,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
       progress: 0,
       error: null,
       errors: [],
+      allFailed: false,
+      serverMessage: null,
     });
   },
 
@@ -119,7 +131,17 @@ export const useImportStore = create<ImportState>((set, get) => ({
       set({ phase: 'failed', error: '尚未选择导入文件' });
       return;
     }
-    set({ phase: 'uploading', progress: 0, error: null });
+    set({
+      phase: 'uploading',
+      progress: 0,
+      error: null,
+      allFailed: false,
+      serverMessage: null,
+      errors: [],
+      total: 0,
+      succeeded: 0,
+      failed: 0,
+    });
 
     // 重新取文件对象（文件不落地前端，仅在选择时存在于内存引用）
     const file = lastSelectedFile;
@@ -131,6 +153,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
     try {
       set({ phase: 'processing', progress: 60 });
       const result = await importDataSources(file);
+      // code=0：全部成功或部分成功。部分成功时 errors 含失败行，必须逐行回显。
       set({
         phase: 'done',
         progress: 100,
@@ -138,11 +161,30 @@ export const useImportStore = create<ImportState>((set, get) => ({
         succeeded: result.succeeded ?? 0,
         failed: result.failed ?? 0,
         errors: result.errors ?? [],
+        allFailed: false,
+        serverMessage: null,
         error: null,
       });
     } catch (error) {
+      if (error instanceof ImportAllFailedError) {
+        // code=2001 / HTTP 422：整批零写入，但后端 data 仍带逐行 errors。
+        // 这里不能只留一句 message，必须把明细透出到失败行清单（P04 阶段四）。
+        const result = error.result;
+        set({
+          phase: 'failed',
+          progress: 100,
+          total: result.total,
+          succeeded: result.succeeded,
+          failed: result.failed,
+          errors: result.errors,
+          allFailed: true,
+          serverMessage: error.message,
+          error: error.message,
+        });
+        return;
+      }
       const message = error instanceof ApiError ? error.message : '导入失败，请稍后重试';
-      set({ phase: 'failed', error: message, progress: 0 });
+      set({ phase: 'failed', error: message, progress: 0, allFailed: false, serverMessage: null });
     }
   },
 
@@ -157,6 +199,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
       succeeded: 0,
       failed: 0,
       errors: [],
+      allFailed: false,
+      serverMessage: null,
       error: null,
     }),
 }));

@@ -12,6 +12,8 @@
 
 import * as React from 'react';
 import {
+  ChevronDown,
+  ChevronRight,
   CircleCheck,
   CircleDot,
   CircleSlash2,
@@ -28,7 +30,7 @@ import { Alert, Badge, Card, CardContent, CardDescription, CardHeader, CardTitle
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableEmptyRow, TableHead, TableHeader, TableRow, NumericCell } from '@/components/ui/table';
 import { formatBytes } from '@/lib/format';
-import type { ImportPhase } from '@/stores/useImportStore';
+import type { ImportErrorRow, ImportPhase } from '@/stores/useImportStore';
 
 /* ------------------------------------------------------- 阶段定义（四阶段） */
 
@@ -345,38 +347,67 @@ export function ImportResultGrid({
 
 /* ------------------------------------------------------- *ImportErrorPanel */
 
-/** 失败处置清单：逐行中文原因 */
+/**
+ * 失败处置清单：可展开的逐行明细表（默认展开，避免逐行原因被折叠隐藏）。
+ * code=0 部分成功与 code=2001 整批失败都复用此组件，逐行显示行号 / 实例标识 / 中文原因。
+ */
 export function ImportErrorPanel({
   errors,
+  defaultOpen = true,
 }: {
-  errors: { row: number; message: string }[];
+  errors: ImportErrorRow[];
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  const hasName = errors.some((item) => Boolean(item.name));
+  const colSpan = hasName ? 3 : 2;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-[var(--space-2)]">
-          <TriangleExclamationPoint size={20} aria-hidden="true" />
-          失败行清单
-        </CardTitle>
-        <CardDescription>行号对应导入文件中的数据行（不含表头），原因由后端逐条回显</CardDescription>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="import-error-detail"
+          onClick={() => setOpen((value) => !value)}
+          className="flex w-full items-center justify-between gap-[var(--space-2)] rounded-[var(--radius-sm)] text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        >
+          <CardTitle className="flex items-center gap-[var(--space-2)]">
+            <TriangleExclamationPoint size={20} aria-hidden="true" />
+            失败行清单（{errors.length} 行）
+          </CardTitle>
+          <span className="flex items-center gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+            {open ? '收起明细' : '展开明细'}
+            {open ? <ChevronDown size={16} aria-hidden="true" /> : <ChevronRight size={16} aria-hidden="true" />}
+          </span>
+        </button>
+        <CardDescription>
+          行号对应导入文件中的数据行（不含表头），逐行原因由后端中文回显，全部失败时零写入
+        </CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className={open ? 'p-0' : 'hidden'} id="import-error-detail">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[96px]">行号</TableHead>
+              {hasName ? <TableHead className="w-[160px]">实例标识</TableHead> : null}
               <TableHead>失败原因</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {errors.length === 0 ? (
-              <TableEmptyRow colSpan={2} message="没有失败行，全部数据源均已入库" />
+              <TableEmptyRow colSpan={colSpan} message="没有失败行，全部数据源均已入库" />
             ) : (
-              errors.map((item) => (
-                <TableRow key={`${item.row}-${item.message}`}>
+              errors.map((item, index) => (
+                <TableRow key={`${item.row}-${index}-${item.message}`}>
                   <NumericCell>
                     <span className="text-[var(--fg)]">{item.row}</span>
                   </NumericCell>
+                  {hasName ? (
+                    <TableCell className="font-[var(--font-mono)] text-[var(--fg-2)]">
+                      {item.name ?? '—'}
+                    </TableCell>
+                  ) : null}
                   <TableCell className="text-[var(--danger)]">{item.message}</TableCell>
                 </TableRow>
               ))
@@ -394,10 +425,30 @@ export function ImportErrorPanel({
 export function ImportPhaseNotice({
   phase,
   failed,
+  allFailed = false,
+  total = 0,
+  serverMessage = null,
 }: {
   phase: ImportPhase;
   failed: number;
+  /** 后端 code=2001：整批零写入，逐行明细仍须回显 */
+  allFailed?: boolean;
+  total?: number;
+  serverMessage?: string | null;
 }) {
+  if (allFailed) {
+    return (
+      <Alert tone="danger" title="全部未入库">
+        <span className="flex flex-col gap-[var(--space-1)]">
+          <span>
+            共解析 {total} 行，成功 0 行、失败 {failed} 行；后端逐条门禁均未通过，本次零写入。
+          </span>
+          {serverMessage ? <span>{serverMessage}</span> : null}
+          <span>下方失败行清单逐行给出行号与原因，修正后可重新导入同一文件。</span>
+        </span>
+      </Alert>
+    );
+  }
   if (phase === 'failed') {
     return (
       <Alert tone="danger" title="导入未完成">

@@ -4,14 +4,17 @@
  * 凭据不出后端：响应中 password 恒为占位串，前端不回显、不缓存。
  */
 
-import { request, requestPage, type QueryParams } from './http';
-import type {
-  ConnectionTestResult,
-  DataSource,
-  DataSourceCreateResult,
-  DataSourceInput,
-  DataSourceMetadata,
-  PageData,
+import { request, requestPage, requestEnvelope, ApiError, type QueryParams } from './http';
+import {
+  ApiErrorCode,
+  type ConnectionTestResult,
+  type DataSource,
+  type DataSourceCreateResult,
+  type DataSourceInput,
+  type DataSourceMetadata,
+  type ImportErrorRow,
+  type ImportResult,
+  type PageData,
 } from '@/types/api';
 
 export interface DataSourceQuery extends QueryParams {
@@ -122,12 +125,10 @@ export class ImportAllFailedError extends ApiError {
 
 /** 归一化导入结果：兼容 {row,message} 与 {index,name,error} 两种逐行字段写法 */
 function normalizeImportResult(data: unknown): ImportResult {
-  const raw = (data ?? {}) as Partial<ImportResult> & {
-    errors?: unknown;
-  };
-  const list = Array.isArray(raw.errors) ? raw.errors : [];
+  const raw = (data ?? {}) as Record<string, unknown>;
+  const list: unknown[] = Array.isArray(raw.errors) ? raw.errors : [];
   const errors: ImportErrorRow[] = list.map((item, index) => {
-    const row = item as Record<string, unknown>;
+    const row = (item ?? {}) as Record<string, unknown>;
     const rowNo = toPositiveInt(row.row ?? row.index ?? row.line) ?? index + 1;
     const message =
       toText(row.message ?? row.error ?? row.reason) ?? '该行未通过校验，未入库';

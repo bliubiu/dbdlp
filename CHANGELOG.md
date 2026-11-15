@@ -3,6 +3,37 @@
 > 版本规范：CalVer `YYYY.MM.DD.MICRO`（年.月.日.迭代号）
 > 说明：2026.11.14 起进入**代码实施**阶段，此前条目为文档体系迭代记录。
 
+## [ 2026.11.15.1 ] - 0.5.0
+
+### ✨ New Features 新增功能
+
+- 【MySQL 方言驱动】新增 `internal/infrastructure/datasource/mysql.go`：基于 go-sql-driver/mysql 的只读适配器，覆盖 `Connect`/`ListSchemas`/`ListColumns`/`TableStats`/`SampleRows`；DSN 仅保留 `charset=utf8mb4&parseTime=true&loc=Local`（只读性由 `roConn` 守卫保障，不依赖驱动参数）；系统库排除 information_schema/mysql/performance_schema/sys。
+- 【PostgreSQL 方言驱动】新增 `internal/infrastructure/datasource/postgres.go`：基于 lib/pq 的只读适配器，覆盖同组接口；`ListSchemas` 排除 pg_catalog/information_schema 与 `pg_%` 模式，`TableStats` 经 `pg_class`/`pg_index` 取主键，`SampleRows` 用 `$N` 占位符与 `LIMIT $N` 主键分页。
+- 【方言白名单放开】`datasource.NewDriver` 注册 mysql/postgres 分支（`registry.go`）；CLI `add`/`test` 的 `--dialect` 帮助文本更新为 `oracle|dameng|mysql|postgres|sqlite`，应用层经工厂直接放行。
+- 【Web 数据源导入错误处理】导入失败链路增强：前端 `web/components/business/import.tsx`/`stores/useImportStore.ts`/`services/datasources.ts` 归一化逐行错误并可读展示失败清单；后端 `internal/interfaces/http/task_handlers.go`/`views.go` 补齐契约字段；新增 `web/scripts/verify_import_errors.py` 校验导入错误响应。
+
+### 🐛 Bug Fixes 问题修复
+
+- 【HTML 报告非标准编码（中文预览乱码）】根因在 `internal/domain/mask/mask.go`：脱敏函数原按**字节**切片（`v[:1]`/`v[len-1:]`），中文「京A12345」(UTF-8 9 字节) 掩码后保留孤立首字节 `0xe4`，破坏多字节序列致整份 HTML 含非法 UTF-8 字节（与第八轮观测 0xe4/0xae/0x8a 解码失败吻合）。已改为按 `[]rune` 处理（`京A12345`→`京*****5`，`utf8.ValidString` 通过）；`reporter.go`/`excel.go` 加 `toValidUTF8`（`strings.ToValidUTF8(s,"\uFFFD")`）写出防御层，与 JSON 降级行为对齐。新增 `TestMaskGenericMultibyte`/`TestMaskEmailMultibyteLocal`/`TestReportersInvalidUTF8`（注入 `[]byte{0xe4,0x41,0x42}` 断言 HTML 整文件 `utf8.Valid`、xlsx 单元格内容 `utf8.ValidString`）。
+- 【PostgreSQL 采样 LIMIT 占位符缺失】`SampleRows` 生成 `LIMIT $N` 但未把 `q.BatchSize` 追加进参数切片，首页（args 为空）触发 `pq: there is no parameter $1` 致采样失败、表 0 命中。修复为先 `args = append(args, q.BatchSize)` 再按 `len(args)` 生成占位符，与 `WHERE pk > $1` 自然衔接。
+- 【MySQL DSN 非法参数】旧 DSN 含 `readOnly=true`，go-sql-driver/mysql 不支持（`Error 1193 Unknown system variable 'readOnly'`）。已移除，只读性由 `roConn` 守卫保障（与 PG 一致）。
+
+### 📈 Improvements 性能/体验优化
+
+- 端到端验证：在 `192.168.10.180` 容器矩阵（Oracle/达梦/MySQL/PG）完成登记与扫描；PG（`dbdlp_test`）与 MySQL（`dbdlp_test`）均 `状态=done | 表1 | 字段7 | 命中4 | 失败0`，HTML 报告 UTF-8 严格解码通过、中文脱敏正常显示（`138****8000`、`z****@example.com`、`6*****************3`）。报告产物 `reports/e2e_pg_20261114/`、`reports/e2e_mysql_20261114/`。
+- 依赖新增 `github.com/go-sql-driver/mysql`、`github.com/lib/pq`（`go.mod`/`go.sum`）。
+
+### 📚 Docs 文档更新
+
+- `docs/01`~`docs/10` 多份修订（版本口径收敛、设计令牌内联、契约对齐等，详见各文档差异）；新增 `docs/11-前端设计复核报告.md`。
+- 【文档收敛/删除】删除决策记录 `docs/decisions/ADR-001.md`、`ADR-002.md`、`ADR-003.md`、`OPEN-DECISIONS.md` 及 `docs/design-tokens.css`、`docs/design-tokens.json`（相关结论已合并/收敛至 `docs/04` 等正文，按本轮评审裁定不再单列）。
+
+### 核验结果（可复现）
+
+- `go build ./...`、`go vet ./...`、`go test ./...` 全绿（TEST_EXIT=0）；`gofmt -l .` 为空。
+
+---
+
 ## [ 2026.11.14.5 ] - 0.4.2
 
 ### ✨ New Features 新增功能

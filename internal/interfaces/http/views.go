@@ -137,16 +137,16 @@ func newTaskView(t port.ScanTask) TaskView {
 	if t.Summary != "" {
 		var s port.TaskSummary
 		if err := json.Unmarshal([]byte(t.Summary), &s); err == nil {
-		doneTables := s.TableCount - s.FailedCount
-		if doneTables < 0 {
-			doneTables = 0
-		}
-		v.Summary = TaskSummaryView{
-			SchemaCount: s.SchemaCount, TableCount: s.TableCount, ColumnCount: s.ColumnCount,
-			HitColumnCount: s.HitColumnCount, FailedCount: s.FailedCount, Message: s.Message,
-			TotalTables: s.TableCount, DoneTables: doneTables, FailedTables: s.FailedCount,
-			TotalColumns: s.ColumnCount, HitColumns: s.HitColumnCount,
-		}
+			doneTables := s.TableCount - s.FailedCount
+			if doneTables < 0 {
+				doneTables = 0
+			}
+			v.Summary = TaskSummaryView{
+				SchemaCount: s.SchemaCount, TableCount: s.TableCount, ColumnCount: s.ColumnCount,
+				HitColumnCount: s.HitColumnCount, FailedCount: s.FailedCount, Message: s.Message,
+				TotalTables: s.TableCount, DoneTables: doneTables, FailedTables: s.FailedCount,
+				TotalColumns: s.ColumnCount, HitColumns: s.HitColumnCount,
+			}
 		}
 	}
 	return v

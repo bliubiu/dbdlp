@@ -5,6 +5,8 @@ go 1.26.0
 require (
 	gitee.com/chunanyong/dm v1.8.23
 	github.com/emmansun/gmsm v0.45.3
+	github.com/go-sql-driver/mysql v1.10.1
+	github.com/lib/pq v1.12.3
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/sijms/go-ora/v2 v2.9.0
 	github.com/spf13/cobra v1.10.2
@@ -15,6 +17,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect

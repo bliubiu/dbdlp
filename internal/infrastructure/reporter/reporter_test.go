@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"dbdlp/internal/domain/port"
 	"github.com/xuri/excelize/v2"
@@ -78,5 +79,58 @@ func TestReporters(t *testing.T) {
 			}
 		}
 		t.Logf("格式=%s 产物=%s 大小=%d", fmtName, path, len(data))
+	}
+}
+
+// TestReportersInvalidUTF8 验证报告出口对脏数据的防御：即使动态字段含非法
+// UTF-8 字节（模拟数据库驱动字符集协商异常引入的 GBK 残留字节），HTML/Excel
+// 产物也必须保证浏览器/Excel 能正常解析（HTML 整体合法 UTF-8；xlsx 单元格内容合法 UTF-8）。
+func TestReportersInvalidUTF8(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	bundle := sampleBundle()
+	// 在脱敏样例与字段名中注入孤立多字节首字节（非法 UTF-8）。
+	bundle.Findings[0].SampleMasked = string([]byte{0xe4, 0x41, 0x42}) + "*****5"
+	bundle.Findings[0].ColumnName = string([]byte{0xe6, 0xe6})
+
+	for _, fmtName := range []port.ReportFormat{port.FormatHTML, port.FormatExcel} {
+		r, err := New(fmtName)
+		if err != nil {
+			t.Fatalf("New(%s): %v", fmtName, err)
+		}
+		path, err := r.Export(ctx, bundle, dir)
+		if err != nil {
+			t.Fatalf("Export(%s): %v", fmtName, err)
+		}
+		if fmtName == port.FormatExcel {
+			// xlsx 是 ZIP 二进制容器，不可对整文件做 utf8.Valid；
+			// 改为用 excelize 打开并校验「单元格内容」为合法 UTF-8（toValidUTF8 已兜底）。
+			ef, err := excelize.OpenFile(path)
+			if err != nil {
+				t.Fatalf("打开 xlsx %s: %v", path, err)
+			}
+			for _, sheet := range ef.GetSheetList() {
+				rows, _ := ef.GetRows(sheet)
+				for _, row := range rows {
+					for _, c := range row {
+						if !utf8.ValidString(c) {
+							t.Fatalf("xlsx 单元格含非法 UTF-8：%q", c)
+						}
+					}
+				}
+			}
+		} else {
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("读取 %s: %v", path, err)
+			}
+			if !utf8.Valid(raw) {
+				head := raw
+				if len(head) > 32 {
+					head = head[:32]
+				}
+				t.Fatalf("格式=%s 产物含非法 UTF-8 字节：% x", fmtName, head)
+			}
+		}
 	}
 }

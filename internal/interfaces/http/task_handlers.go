@@ -108,14 +108,14 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 	writeData(w, map[string]any{"taskId": taskID})
 }
 
-// handleGetTask 任务详情（含解析后的汇总）。
+// handleGetTask 任务详情（含解析后的汇总与失败对象清单，供控制台重试用）。
 func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 	t, err := s.mustTask(r)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeData(w, newTaskView(t))
+	writeData(w, s.enrichTaskDetailView(r.Context(), t.ID, newTaskView(t)))
 }
 
 // handleTaskProgress 任务进度。
