@@ -151,10 +151,10 @@ func socialCreditCode(s string) bool {
 	return want == s[17]
 }
 
-// passport 护照：1 位字母 + 8 位数字，或 E/D + 8 位数字等宽松校验。
+// passport 护照：1-2 位字母前缀 + 7~8 位数字（含中国电子护照 E/G 与
+// 双字母前缀形态，openDLP 基线回流）。
 func passport(s string) bool {
-	return regexp.MustCompile(`^[A-Za-z][0-9]{8}$`).MatchString(s) ||
-		regexp.MustCompile(`^(E|D|S|P)[0-9]{8}$`).MatchString(strings.ToUpper(s))
+	return regexp.MustCompile(`^[A-Za-z]{1,2}[0-9]{7,8}$`).MatchString(strings.ToUpper(s))
 }
 
 // plate 中国大陆车牌：省份简称 + 字母 + 5 位字母数字（含新能源 6 位）。

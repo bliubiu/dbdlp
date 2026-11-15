@@ -7,6 +7,24 @@
 
 ### ✨ New Features 新增功能
 
+- 【规则基线评测体系】新增 `testdata/baseline/`（hitsz-ids/openDLP 样本每类 200 对正负样本，14 类入库，Apache-2.0）与 `internal/domain/detector/baseline_test.go` 可复跑评测（docs/08 M3 判据「基线评测有记录」、docs/07 EV-05「基线进版本库」）：口径对齐 EV-02/EV-03——严格召回（命中＋校验通过）、高置信误报（负样本校验通过）、仅格式命中分层统计。
+
+### 📈 Improvements 性能/体验优化
+
+- 【规则回流调优第一批】固话正则支持括号区号形态并将 `bytescan.max_len` 13→16（括号形态 14~16 字符被预过滤截断），严格召回 44.5% → **99.0%**；护照放宽为 1~2 位字母前缀＋7~8 位数字（覆盖 `EY3444290` 双字母形态），64.0% → **99.5%**。回流后 10/13 类严格召回 ≥99%，EV-02 中置信类全部达标；其余差距（MOBILE 变形形态、SOCIAL 样本校验位缺陷、BANK_CARD Luhn 数学属性误报）已归因并单列于 `docs/12`。
+
+### 📚 Docs 文档更新
+
+- 新增 `docs/12-规则基线评测记录.md`：首版/回流后两轮数值、差距归因（SOCIAL 样本校验位非真实、MOBILE 变形形态、POSTCODE 样本噪音）、EV-02 达标判定与复跑方法。
+- 新增 `docs/decisions/ADR-004.md`（Proposed）：语义类（人名/地址/公司名）内容级识别方案——推荐词典＋结构规则内置（分期：公司后缀/区划结构先行、人名词典配合白名单），语义命中置信度封顶「中」并强制复核；NLP 模型方案本期否决。
+- 说明：MySQL/PostgreSQL 方言代码由并行迭代推进中；M3 判据「新方言真机验证」因 e2e 环境暂不可达（VM 不可达，本机无 Docker）转为待办，环境恢复后按 `datasource add → scan` 流程验证。
+
+---
+
+## [ 2026.11.15.1 ] - 0.5.0
+
+### ✨ New Features 新增功能
+
 - 【MySQL 方言驱动】新增 `internal/infrastructure/datasource/mysql.go`：基于 go-sql-driver/mysql 的只读适配器，覆盖 `Connect`/`ListSchemas`/`ListColumns`/`TableStats`/`SampleRows`；DSN 仅保留 `charset=utf8mb4&parseTime=true&loc=Local`（只读性由 `roConn` 守卫保障，不依赖驱动参数）；系统库排除 information_schema/mysql/performance_schema/sys。
 - 【PostgreSQL 方言驱动】新增 `internal/infrastructure/datasource/postgres.go`：基于 lib/pq 的只读适配器，覆盖同组接口；`ListSchemas` 排除 pg_catalog/information_schema 与 `pg_%` 模式，`TableStats` 经 `pg_class`/`pg_index` 取主键，`SampleRows` 用 `$N` 占位符与 `LIMIT $N` 主键分页。
 - 【方言白名单放开】`datasource.NewDriver` 注册 mysql/postgres 分支（`registry.go`）；CLI `add`/`test` 的 `--dialect` 帮助文本更新为 `oracle|dameng|mysql|postgres|sqlite`，应用层经工厂直接放行。

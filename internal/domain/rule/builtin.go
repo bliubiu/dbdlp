@@ -40,7 +40,7 @@ func BuiltinRules() []port.Rule {
 		},
 		{
 			RuleID: "PASSPORT", SensitiveType: "PASSPORT", Enabled: true,
-			Regex: `^[A-Za-z][0-9]{8}$`, Verifier: "passport", Threshold: 0.6,
+			Regex: `^[A-Za-z]{1,2}[0-9]{7,8}$`, Verifier: "passport", Threshold: 0.6,
 			Bytescan: port.BytescanSpec{MinLen: 9, MaxLen: 9},
 		},
 		{
@@ -55,8 +55,8 @@ func BuiltinRules() []port.Rule {
 		},
 		{
 			RuleID: "FIXED_PHONE", SensitiveType: "FIXED_PHONE", Enabled: true,
-			Regex: `^0\d{2,3}-?\d{7,8}$`, Threshold: 0.5,
-			Bytescan: port.BytescanSpec{MinLen: 11, MaxLen: 13},
+			Regex: `^(?:0\d{2,3}-?\d{7,8}|\(\d{3,4}\)-?\d{7,8})$`, Threshold: 0.5,
+			Bytescan: port.BytescanSpec{MinLen: 11, MaxLen: 16},
 		},
 		{
 			RuleID: "IPV6", SensitiveType: "IPV6", Enabled: true,
