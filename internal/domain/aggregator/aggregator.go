@@ -100,7 +100,7 @@ func (a *aggregator) ClassifyRisk(_ context.Context, f port.ColumnFinding) (port
 		return port.RiskHigh, nil
 	case hasHigh && f.VerifyPassed && plaintext:
 		return port.RiskMedium, nil
-	case hasMeta && plaintext:
+	case hasMeta && plaintext && f.VerifyPassed:
 		return port.RiskMedium, nil
 	case f.StorageForm == "hash" || f.StorageForm == "encrypted":
 		return port.RiskMediumLow, nil

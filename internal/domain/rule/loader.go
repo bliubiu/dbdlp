@@ -34,6 +34,8 @@ type yamlRule struct {
 		DigitsOnly  bool     `yaml:"digits_only"`
 		PrefixBytes []string `yaml:"prefix_bytes"`
 	} `yaml:"bytescan"`
+	Dictionary []string `yaml:"dictionary"` // 词典词条（语义类规则形态，ADR-004）
+	DictKind   string   `yaml:"dict_kind"`  // person | company | address
 }
 
 type yamlFile struct {
@@ -139,6 +141,15 @@ func mergeYAML(base []port.Rule, f yamlFile) ([]port.Rule, error) {
 				DigitsOnly:  yr.Bytescan.DigitsOnly,
 				PrefixBytes: yr.Bytescan.PrefixBytes,
 			},
+			Dictionary: yr.Dictionary,
+			DictKind:   strings.TrimSpace(yr.DictKind),
+		}
+		if len(merged.Dictionary) > 0 {
+			switch merged.DictKind {
+			case "person", "company", "address":
+			default:
+				return nil, fmt.Errorf("规则 %s 的 dict_kind 非法：%s（可选 person/company/address）", ruleID, merged.DictKind)
+			}
 		}
 
 		if i, ok := idx[ruleID]; ok {

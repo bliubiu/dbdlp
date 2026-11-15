@@ -3,6 +3,20 @@
 > 版本规范：CalVer `YYYY.MM.DD.MICRO`（年.月.日.迭代号）
 > 说明：2026.11.14 起进入**代码实施**阶段，此前条目为文档体系迭代记录。
 
+## [ 2026.11.15.2 ] - 0.6.0
+
+### ✨ New Features 新增功能
+
+- 【语义识别实施（ADR-004 按推荐执行）】新增第五种规则形态 `dictionary`（词典＋结构规则，值级整串判定）：内置人名（姓氏/复姓表＋1~2 字名，机构特征词排除）、公司名（后缀词典＋前缀 ≥4 汉字）、地址（区划层级词＋结构词 ≥2）三条语义规则；`port.Rule` 扩展 `Dictionary/DictKind` 字段，YAML 规则新增 `dictionary/dict_kind` 段（dict_kind 枚举校验）。语义命中 `VerifyPassed=false` → 列级 `pending_review` 强制复核（SEM-01），置信度封顶「中」，掩码走通配全 `*`。
+- 【语义基线评测】`testdata/baseline/semantic_{person,company,address}.csv`（openDLP dataset-test 语义列 200 正样本＋普通文本负样本）与评测扩展：precision 100%（负样本零误报，≥90% 达标），召回 人名 59%/公司名 50%/地址 97% 单列（词典迭代扩充路径见 docs/12 §3A）。
+- 【e2e 实证】语义验证库（本地 SQLite）扫描：NAME/COMPANY/ADDRESS 三列命中且复核状态 `pending_review`，NOTE 对照列零命中——语义类「识别→分流→复核」链路闭环。
+
+### 📚 Docs 文档更新
+
+- `docs/12` 新增 §3A 语义类基线数值与提升路径；`docs/decisions/ADR-004` 状态由 Proposed 更新为实施中。
+
+---
+
 ## [ 2026.11.15.1 ] - 0.5.0
 
 ### ✨ New Features 新增功能

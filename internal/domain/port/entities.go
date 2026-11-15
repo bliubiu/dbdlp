@@ -99,8 +99,10 @@ type Rule struct {
 	Verifier      string
 	Threshold     float64
 	Bytescan      BytescanSpec
-	Version       string // 规则内容版本（加载时填充）
-	RegexDigest   string // 快照摘要：历史版本只落摘要不落正则正文
+	Dictionary    []string // 词典词条（语义类规则形态：非空时按 DictKind 做整串结构判定）
+	DictKind      string   // 词典判定类型：person | company | address
+	Version       string   // 规则内容版本（加载时填充）
+	RegexDigest   string   // 快照摘要：历史版本只落摘要不落正则正文
 }
 
 // BytescanSpec 第 1 层字节扫描特征。

@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"dbdlp/internal/domain/detector"
+	"dbdlp/internal/domain/port"
 	"dbdlp/internal/domain/rule"
 )
 
@@ -134,4 +135,59 @@ func TestRuleBaseline(t *testing.T) {
 	}
 	out := strings.Join(rows, "\n")
 	t.Logf("规则基线（openDLP 样本每类 200 对，规则版本 %s）：\n| 规则 | 分层 | 严格召回 | 召回率 | 高置信误报 | 误报率 | 仅格式命中 |\n|---|---|---|---|---|---|---|\n%s", version, out)
+	testSemanticBaseline(t, det)
+}
+
+// testSemanticBaseline 语义类（ADR-004）评测：precision ≥90% 硬断言，召回单列。
+// 正样本来自 openDLP dataset-test 的 PERSON/COMPANY_NAME/LOCATION 列（合成数据以生成意图为真值），
+// 负样本为普通业务文本（不应命中）。
+func testSemanticBaseline(t *testing.T, det port.Detector) {
+	cases := []struct {
+		name string
+		csv  string
+		rule string
+	}{
+		{"人名", "semantic_person.csv", "NAME"},
+		{"公司名", "semantic_company.csv", "COMPANY"},
+		{"地址", "semantic_address.csv", "ADDRESS"},
+	}
+	ctx := context.Background()
+	for _, c := range cases {
+		pos, neg := loadBaseline(t, c.csv)
+		tp, fp := 0, 0
+		for _, v := range pos {
+			hits, _ := det.DetectValue(ctx, v)
+			for _, h := range hits {
+				if h.SensitiveType == c.rule {
+					tp++
+					break
+				}
+			}
+		}
+		for _, v := range neg {
+			hits, _ := det.DetectValue(ctx, v)
+			for _, h := range hits {
+				if h.SensitiveType == c.rule {
+					fp++
+				}
+			}
+		}
+		total := tp + fp
+		precision := 0.0
+		if total > 0 {
+			precision = float64(tp) / float64(total) * 100
+		}
+		t.Logf("语义 %-6s 召回 %d/%d（%.1f%%） precision %.1f%%（误报 %d）",
+			c.name, tp, len(pos), float64(tp)/float64(maxInt(len(pos), 1))*100, precision, fp)
+		if precision < 90 {
+			t.Errorf("语义 %s precision %.1f%% < 90%%（误报 %d），按 ADR-004 需回退词典条目", c.name, precision, fp)
+		}
+	}
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

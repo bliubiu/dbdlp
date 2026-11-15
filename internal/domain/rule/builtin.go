@@ -71,6 +71,21 @@ func BuiltinRules() []port.Rule {
 			Bytescan: port.BytescanSpec{MinLen: 14, MaxLen: 17},
 		},
 		{
+			RuleID: "NAME", SensitiveType: "NAME", Enabled: true,
+			Dictionary: personDict, DictKind: "person", Threshold: 0.6,
+			Bytescan: port.BytescanSpec{MinLen: 6, MaxLen: 24},
+		},
+		{
+			RuleID: "COMPANY", SensitiveType: "COMPANY", Enabled: true,
+			Dictionary: companyDict, DictKind: "company", Threshold: 0.6,
+			Bytescan: port.BytescanSpec{MinLen: 12, MaxLen: 240},
+		},
+		{
+			RuleID: "ADDRESS", SensitiveType: "ADDRESS", Enabled: true,
+			Dictionary: addressDict, DictKind: "address", Threshold: 0.6,
+			Bytescan: port.BytescanSpec{MinLen: 12, MaxLen: 300},
+		},
+		{
 			RuleID: "DOMAIN", SensitiveType: "DOMAIN", Enabled: true,
 			Regex:    `^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$`,
 			Verifier: "domain", Threshold: 0.6,

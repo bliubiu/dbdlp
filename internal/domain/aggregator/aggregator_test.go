@@ -24,11 +24,18 @@ func TestClassifyRisk(t *testing.T) {
 		t.Errorf("期望 medium（校验过但缺上下文吻合），got %s", r)
 	}
 
-	// 元数据弱命中（姓名）明文 → medium
+	// 元数据弱命中（姓名）明文 + 校验未过（语义类无校验概念）→ 强制复核（ADR-004）
 	f = port.ColumnFinding{SensitiveTypes: []string{"NAME"}, VerifyPassed: false, StorageForm: "plaintext"}
 	r, _ = a.ClassifyRisk(context.Background(), f)
+	if r != port.RiskPendingReview {
+		t.Errorf("期望 pending_review（语义强制复核），got %s", r)
+	}
+
+	// 元数据弱命中 + 校验通过（混合列含结构化命中）→ medium
+	f = port.ColumnFinding{SensitiveTypes: []string{"NAME"}, VerifyPassed: true, StorageForm: "plaintext"}
+	r, _ = a.ClassifyRisk(context.Background(), f)
 	if r != port.RiskMedium {
-		t.Errorf("期望 medium（元数据），got %s", r)
+		t.Errorf("期望 medium（元数据+已验证），got %s", r)
 	}
 
 	// 仅格式命中、未校验 → pending_review

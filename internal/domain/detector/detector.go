@@ -45,7 +45,29 @@ func (d *detector) DetectValue(_ context.Context, value string) ([]port.Hit, err
 	}
 	var hits []port.Hit
 	for _, r := range d.rules {
-		if !r.Enabled || r.Regex == "" {
+		if !r.Enabled {
+			continue
+		}
+		// 词典规则（语义类，ADR-004）：整串结构判定，VerifyPassed 恒 false
+		// → 列级进入待复核（SEM-01 强制人工复核），置信度封顶「中」。
+		if len(r.Dictionary) > 0 {
+			if !passByteScan(r.Bytescan, value) {
+				continue
+			}
+			if !rule.MatchDictionary(r.DictKind, value, r.Dictionary) {
+				continue
+			}
+			hits = append(hits, port.Hit{
+				RuleID:        r.RuleID,
+				SensitiveType: r.SensitiveType,
+				Confidence:    "medium",
+				MaskedValue:   mask.ByType(r.SensitiveType, value),
+				SourceForm:    "plaintext",
+				VerifyPassed:  false,
+			})
+			continue
+		}
+		if r.Regex == "" {
 			continue
 		}
 		if !passByteScan(r.Bytescan, value) {
