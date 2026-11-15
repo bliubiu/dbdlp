@@ -229,6 +229,8 @@ disql 用户名/密码@主机:5236 `testdata/dameng/dbdlp_testdata_dameng.sql`
 | 扫描模式 | `DBDLP_TEST` | `DBDLP_TEST` |
 | 账号 | system（口令见容器环境变量 `ORACLE_PWD`） | SYSDBA（口令见容器环境变量 `SYSDBA_PWD`） |
 | 容器 | `e2e-oracle`（oracle/database:11.2.0.4-ee） | `e2e-dm8`（dm8:v250912-sec-kylin10sp3-2403） |
+| E2E-MYSQL-M3 | mysql，`dbm-mysql` mysql:8.0 :3306，库 dbdlp_test（口令见容器环境变量 `MYSQL_ROOT_PASSWORD`） | 同左（M3 新方言验证） |
+| E2E-PG-M3 | postgres，`e2e-pg` postgres:16 :5432，schema dbdlp_test（口令见容器环境变量 `POSTGRES_PASSWORD`） | 同左（M3 新方言验证） |
 
 > 安全说明：两库口令仅存在于容器环境变量，不落任何文档/代码；数据源登记后口令以 `ENC(...)` 加密存于本地 `data/dbdlp.db`。测试表统一置于专用业务用户 `DBDLP_TEST`（扫描器按设计强制排除 SYSTEM/SYSDBA 等系统模式，`include-schemas` 无法覆盖）。
 

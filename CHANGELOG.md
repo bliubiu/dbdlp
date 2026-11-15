@@ -17,7 +17,7 @@
 
 - 新增 `docs/12-规则基线评测记录.md`：首版/回流后两轮数值、差距归因（SOCIAL 样本校验位非真实、MOBILE 变形形态、POSTCODE 样本噪音）、EV-02 达标判定与复跑方法。
 - 新增 `docs/decisions/ADR-004.md`（Proposed）：语义类（人名/地址/公司名）内容级识别方案——推荐词典＋结构规则内置（分期：公司后缀/区划结构先行、人名词典配合白名单），语义命中置信度封顶「中」并强制复核；NLP 模型方案本期否决。
-- 说明：MySQL/PostgreSQL 方言代码由并行迭代推进中；M3 判据「新方言真机验证」因 e2e 环境暂不可达（VM 不可达，本机无 Docker）转为待办，环境恢复后按 `datasource add → scan` 流程验证。
+- 【新方言真机验证通过】MySQL 8.0（`dbm-mysql` :3306）与 PostgreSQL 16（`e2e-pg` :5432）容器真机走通「建库 → datasource add → 扫描 → 台账 → 报告」全链路（M3 判据达成）：IPv6/MAC/DOMAIN 新规则正确命中、负样本排除、中文数据正常；MySQL 库内占位列被判定 `pending_review`（EV-04 分流首次真机实证）。
 
 ---
 
