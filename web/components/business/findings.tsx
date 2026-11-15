@@ -36,6 +36,7 @@ import {
   Type,
 } from 'lucide-react';
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { isSemanticFinding, sensitiveTypeLabel } from '@/lib/format';
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -485,7 +486,7 @@ export function FindingTable({
             <span className="flex flex-wrap gap-[var(--space-1)]">
               {types.slice(0, 2).map((type) => (
                 <Badge key={type} tone="neutral">
-                  {type}
+                  {sensitiveTypeLabel(type)}
                 </Badge>
               ))}
               {types.length > 2 ? <Badge tone="neutral">+{types.length - 2}</Badge> : null}
@@ -508,8 +509,20 @@ export function FindingTable({
       }),
       columnHelper.accessor('verifyPassed', {
         header: 'Verify',
-        cell: (info) =>
-          info.getValue() ? (
+        cell: (info) => {
+          // 语义类（人名/公司名/地址）无结构化校验概念：未通过是预期行为，中性展示避免误读（ADR-004）
+          if (isSemanticFinding(info.row.original.sensitiveTypes)) {
+            return (
+              <span
+                className="inline-flex items-center gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]"
+                title="语义类命中（人名/公司名/地址）无结构化校验，建议人工确认是否真实敏感"
+              >
+                <CircleDot size={12} aria-hidden="true" />
+                语义
+              </span>
+            );
+          }
+          return info.getValue() ? (
             <span className="inline-flex items-center gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--success)]">
               <CircleCheck size={12} aria-hidden="true" />
               通过
@@ -519,7 +532,8 @@ export function FindingTable({
               <CircleX size={12} aria-hidden="true" />
               未通过
             </span>
-          ),
+          );
+        },
       }),
       columnHelper.accessor('confidence', {
         header: () => SortableHeader('置信度', 'confidence'),
@@ -544,6 +558,13 @@ export function FindingTable({
       columnHelper.accessor('reviewStatus', {
         header: () => SortableHeader('复核状态', 'reviewStatus'),
         cell: (info) => (
+          <span
+            title={
+              info.getValue() === 'pending' && isSemanticFinding(info.row.original.sensitiveTypes)
+                ? '语义类命中（人名/公司名/地址）无结构化校验，建议人工确认是否真实敏感'
+                : undefined
+            }
+          >
           <Badge
             tone={
               info.getValue() === 'confirmed'
@@ -557,6 +578,7 @@ export function FindingTable({
           >
             {REVIEW_STATUS_LABEL[info.getValue() as ReviewStatus] ?? '待复核'}
           </Badge>
+          </span>
         ),
       }),
       columnHelper.accessor('sampleMasked', {

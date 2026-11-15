@@ -29,7 +29,7 @@ import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle } from
 import { Button } from '@/components/ui/button';
 import { Field, Textarea } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableEmptyRow, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatDateTime, RAW_RISK_LABEL, REVIEW_CONCLUSION_LABEL, STORAGE_FORM_LABEL, CONFIDENCE_LABEL } from '@/lib/format';
+import { formatDateTime, isSemanticFinding, RAW_RISK_LABEL, REVIEW_CONCLUSION_LABEL, sensitiveTypeLabel, STORAGE_FORM_LABEL, CONFIDENCE_LABEL } from '@/lib/format';
 import { RiskBadge } from '@/components/business/findings';
 import type {
   ColumnFinding,
@@ -75,7 +75,7 @@ export function FindingMetaGrid({ finding }: { finding: ColumnFinding }) {
     { label: '表名', value: finding.tableName, mono: true },
     { label: '字段名', value: finding.columnName, mono: true },
     { label: '字段类型', value: finding.dataType, mono: true },
-    { label: '敏感类型', value: finding.sensitiveTypes.join('、') || '—' },
+    { label: '敏感类型', value: finding.sensitiveTypes.map(sensitiveTypeLabel).join('、') || '—' },
     {
       label: '命中率',
       value: `${Math.round((finding.hitRatio > 1 ? finding.hitRatio : finding.hitRatio * 100) * 10) / 10}%`,
@@ -83,8 +83,13 @@ export function FindingMetaGrid({ finding }: { finding: ColumnFinding }) {
     },
     { label: '命中 / 样本', value: `${finding.sampleHit} / ${finding.sampleTotal}`, mono: true },
     {
+      // 语义类（人名/公司名/地址）无结构化校验概念：中性展示避免误读（ADR-004）
       label: 'Verify',
-      value: finding.verifyPassed ? '通过' : '未通过',
+      value: isSemanticFinding(finding.sensitiveTypes)
+        ? '语义命中（无结构化校验，建议人工确认）'
+        : finding.verifyPassed
+          ? '通过'
+          : '未通过',
     },
     { label: '置信度', value: CONFIDENCE_LABEL[finding.confidence as Confidence] ?? '低' },
     { label: '存储形态', value: STORAGE_FORM_LABEL[finding.storageForm as StorageForm] ?? '—' },

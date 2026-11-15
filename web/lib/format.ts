@@ -58,6 +58,46 @@ export function toUiRisk(level: RiskLevel | string): UiRisk {
   return RISK_TO_UI[level as RiskLevel] ?? 'pending';
 }
 
+/** 敏感类型中文标签（含语义类 ADR-004；未知枚举原样回退） */
+export const SENSITIVE_TYPE_LABEL: Record<string, string> = {
+  MOBILE_PHONE: '手机号',
+  ID_CARD: '身份证',
+  BANK_CARD: '银行卡',
+  SOCIAL_CREDIT_CODE: '统一社会信用代码',
+  EMAIL: '邮箱',
+  IPV4: 'IPv4',
+  IPV6: 'IPv6',
+  PASSPORT: '护照',
+  PLATE: '车牌',
+  POSTCODE: '邮编',
+  FIXED_PHONE: '固话',
+  MAC: 'MAC 地址',
+  DOMAIN: '域名',
+  NAME: '人名',
+  COMPANY: '公司名',
+  ADDRESS: '地址',
+  EMPLOYEE_NO: '内部工号',
+  CONTRACT_NO: '合同号',
+  CUSTOMER_NO: '客户编号',
+  DATE: '日期',
+};
+
+export function sensitiveTypeLabel(t: string): string {
+  return SENSITIVE_TYPE_LABEL[t] ?? t;
+}
+
+/** 语义类类型集合（ADR-004：无结构化校验概念，Verify 列中性展示） */
+export const SEMANTIC_TYPES = ['NAME', 'COMPANY', 'ADDRESS'];
+
+export function isSemanticType(t: string): boolean {
+  return SEMANTIC_TYPES.includes(t);
+}
+
+/** 行级判定：该字段的全部敏感类型均为语义类 → Verify 列与复核引导走中性文案 */
+export function isSemanticFinding(types: string[] | undefined | null): boolean {
+  return Boolean(types && types.length > 0 && types.every(isSemanticType));
+}
+
 /** 置信度权重 */
 export const CONFIDENCE_WEIGHT: Record<Confidence, number> = {
   high: 3,

@@ -10,6 +10,7 @@
 - 【语义识别实施（ADR-004 按推荐执行）】新增第五种规则形态 `dictionary`（词典＋结构规则，值级整串判定）：内置人名（姓氏/复姓表＋1~2 字名，机构特征词排除）、公司名（后缀词典＋前缀 ≥4 汉字）、地址（区划层级词＋结构词 ≥2）三条语义规则；`port.Rule` 扩展 `Dictionary/DictKind` 字段，YAML 规则新增 `dictionary/dict_kind` 段（dict_kind 枚举校验）。语义命中 `VerifyPassed=false` → 列级 `pending_review` 强制复核（SEM-01），置信度封顶「中」，掩码走通配全 `*`。
 - 【语义基线评测】`testdata/baseline/semantic_{person,company,address}.csv`（openDLP dataset-test 语义列 200 正样本＋普通文本负样本）与评测扩展：precision 100%（负样本零误报，≥90% 达标），召回 人名 59%/公司名 50%/地址 97% 单列（词典迭代扩充路径见 docs/12 §3A）。
 - 【e2e 实证】语义验证库（本地 SQLite）扫描：NAME/COMPANY/ADDRESS 三列命中且复核状态 `pending_review`，NOTE 对照列零命中——语义类「识别→分流→复核」链路闭环。
+- 【控制台语义展示优化】`web/lib/format.ts` 新增敏感类型中文映射（含语义类与扩展类型）与 `isSemanticFinding` 行级判定；结果台账（P07）：敏感类型徽章中文渲染、Verify 列对语义行中性展示「○ 语义」（无结构化校验是预期行为，替代误导性红色「未通过」）、待复核徽章附引导提示；字段明细（P08）同步（Verify 行「语义命中（无结构化校验，建议人工确认）」）。tsc 通过，浏览器渲染验收通过。
 
 ### 📚 Docs 文档更新
 
